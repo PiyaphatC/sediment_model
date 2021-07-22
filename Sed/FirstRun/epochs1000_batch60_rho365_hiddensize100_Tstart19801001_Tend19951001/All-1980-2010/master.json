@@ -1,0 +1,85 @@
+{
+    "out": "/data/pmc5570/Sediment_model/Sed/FirstRun/epochs1000_batch60_rho365_hiddensize100_Tstart19801001_Tend19951001/All-1980-2010",
+    "data": {
+        "name": "hydroDL.data.camels.DataframeCamels",
+        "subset": "All",
+        "varT": [
+            "PRCP (Daymet)"
+        ],
+        "varC": [
+            "PPTAVG_BASIN",
+            "DDENS_2009",
+            "STOR_NID_2009",
+            "MAJ_DDENS_2009",
+            "DEVNLCD06",
+            "FORESTNLCD06",
+            "PLANTNLCD06",
+            "HGA",
+            "HGB",
+            "HGC",
+            "HGD",
+            "PERMAVE",
+            "NO4AVE",
+            "NO200AVE",
+            "NO10AVE",
+            "CLAYAVE",
+            "SILTAVE",
+            "SANDAVE",
+            "KFACT_UP",
+            "RFACT",
+            "ELEV_MEAN_M_BASIN",
+            "SLOPE_PCT",
+            "ASPECT_DEGREES",
+            "DRAIN_SQKM",
+            "HYDRO_DISTURB_INDX"
+        ],
+        "target": [
+            "s",
+            "e",
+            "d",
+            "i",
+            "m",
+            "e",
+            "n",
+            "t"
+        ],
+        "tRange": [
+            19801001,
+            19951001
+        ],
+        "doNorm": [
+            true,
+            true
+        ],
+        "rmNan": [
+            true,
+            false
+        ],
+        "daObs": 0,
+        "damean": false,
+        "davar": "APCP",
+        "dameanopt": 0,
+        "lckernel": null,
+        "fdcopt": false
+    },
+    "model": {
+        "name": "hydroDL.model.rnn.CudnnLstmModel",
+        "nx": 26,
+        "ny": 1,
+        "hiddenSize": 100,
+        "doReLU": true
+    },
+    "loss": {
+        "name": "hydroDL.model.crit.RmseLoss",
+        "prior": "gauss"
+    },
+    "train": {
+        "miniBatch": [
+            60,
+            365
+        ],
+        "nEpoch": 1000,
+        "saveEpoch": 5,
+        "seed": 13376
+    }
+}

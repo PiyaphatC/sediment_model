@@ -1,0 +1,16 @@
+,median,STD,mean
+Bias,inf,,inf
+RMSE,inf,,inf
+ubRMSE,,,
+Corr,,,
+R2,,,
+NSE,-inf,,-inf
+FLV,inf,,inf
+FHV,inf,,inf
+PBias,inf,,inf
+Biasflat,inf,,inf
+absBiasflat,inf,,inf
+RMSEflat,inf,,inf
+ubRMSEflat,,,
+corrflat,,,
+NSEflat,-inf,,-inf
