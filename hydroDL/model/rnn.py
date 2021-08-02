@@ -369,6 +369,7 @@ class CudnnLstmModel(torch.nn.Module):
         x0 = F.relu(self.linearIn(x))
         outLSTM, (hn, cn) = self.lstm(x0, doDropMC=doDropMC, dropoutFalse=dropoutFalse)
         out = self.linearOut(outLSTM)
+        # out = F.relu(self.linearOut(outLSTM))
         return out
 
 
