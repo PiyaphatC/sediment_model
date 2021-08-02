@@ -131,7 +131,7 @@ def readUsgsGage(usgsId, *, readQc=False):
       ##                      '%08d_streamflow_qc.txt' % (usgsId))
     ##dataTemp = pd.read_csv(usgsFile, sep=r'\s+', header=None)
     ##obs = dataTemp[4].values
-    obs = forcing_data.loc[forcing_data['sta_id']==usgsId, Target].to_numpy()
+    obs = forcing_data.loc[forcing_data['sta_id']==usgsId, Target].to_numpy().squeeze()
     ##obs[obs < 0] = np.nan
     if readQc is True:
         qcDict = {'A': 1, 'A:e': 2, 'M': 3}
@@ -317,8 +317,8 @@ def calStatAll():
     y = readUsgs(idLst)
     # statDict['usgsFlow'] = calStatgamma(y)
     ##statDict['00060_Mean'] = calStatbasinnorm(y)
-    if Target == '80154_mean':
-        statDict['80154_mean'] = calStatbasinnorm(y)
+    if Target == ['80154_mean']:
+        statDict['80154_mean'] = calStat(y)    #calStatbasinnorm(y)
     elif Target == 'combine_discharge':
         statDict['00060_Mean'] = calStatbasinnorm(y)
     else:
@@ -330,10 +330,9 @@ def calStatAll():
         if var=='APCP':
             statDict[var] = calStatgamma(x[:, :, k])
         elif var=='PRCP (Daymet)':
-            statDict[var] = calStatbasinnorm(x[:, :, k])
-        elif var=='80154_mean':
-            statDict[var] = calStatbasinnorm(x[:, :, k])
-        elif var=='combine_discharge':
+            statDict[var] = calStatgamma(x[:, :, k])
+
+        elif var=='streamflow':
             statDict[var] = calStatbasinnorm(x[:, :, k])
         else:
             statDict[var] = calStat(x[:, :, k])
@@ -362,7 +361,7 @@ def transNorm(x, varLst, *, toNorm):
         stat = statDict[var]
         if toNorm is True:
             if len(x.shape) == 3:
-                if var == 'APCP' or var == '80154_mean':
+                if var == 'streamflow':
                     x[:, :, k] = np.log10(np.sqrt(x[:, :, k]) + 0.1)
 
                 out[:, :, k] = (x[:, :, k] - stat[2]) / stat[3]
@@ -373,7 +372,7 @@ def transNorm(x, varLst, *, toNorm):
         else:
             if len(x.shape) == 3:
                 out[:, :, k] = x[:, :, k] * stat[3] + stat[2]
-                if var == 'APCP' or var == '80154_mean':
+                if var == 'streamflow':
                     out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
 
             elif len(x.shape) == 2:
