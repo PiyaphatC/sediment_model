@@ -33,11 +33,11 @@ interfaceOpt = 1
 # 2: test trained models
 Action = [0,2]
 # Set hyperparameters for training or retraining
-EPOCH = 2000
+EPOCH = 20
 BATCH_SIZE = 30
 RHO = 365
 HIDDENSIZE =100
-saveEPOCH = 50 # it was 50
+saveEPOCH = 10 # it was 50
 Ttrain = [19801001, 19871001]  # Training period. it was [19851001, 19951001]
 seed = None   # fixing the random seed. None means it is not fixed
 
