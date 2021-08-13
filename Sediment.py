@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../')
-from hydroDL import master, utils
+from hydroDL import master #utils
 from hydroDL.master import default
 import matplotlib.pyplot as plt
 from hydroDL.data import camels
@@ -14,7 +14,7 @@ import torch
 import pandas as pd
 import math
 import random
-
+5
 # forcing_list = ['forcing_60%_days_306sites.feather'
 #                 ]
 # attr_list = ['attr_temp60%_days_306sites.feather'
@@ -33,12 +33,12 @@ interfaceOpt = 1
 # 2: test trained models
 Action = [0,2]
 # Set hyperparameters for training or retraining
-EPOCH = 20
-BATCH_SIZE = 30
+EPOCH = 1
+BATCH_SIZE = 206
 RHO = 365
 HIDDENSIZE =100
-saveEPOCH = 10 # it was 50
-Ttrain = [19801001, 19871001]  # Training period. it was [19851001, 19951001]
+saveEPOCH = 1 # it was 50
+Ttrain = [19801001, 19951001]  # Training period. it was [19851001, 19951001]
 seed = None   # fixing the random seed. None means it is not fixed
 
 ###############################
@@ -53,20 +53,24 @@ absRoot = os.getcwd()
 rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'SNTemp')  #  dataset root directory:
 rootOut = os.path.join(os.path.sep, absRoot, 'SSC_output', 'FirstRun')  # Model output root directory:
 
-forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Farshid_like_Forcing_415_with_Daymet_streamflow.csv')  #
+forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Forcing_412_with_log_trans_dtfix.csv')  #
 # forcing_data =[]#pd.read_feather(forcing_path)
 # forcing_data = pd.read_csv(forcing_path)
 forcing_data = pd.read_csv(forcing_path)
+#forcing_data[forcing_data['streamflow'] < 0.0] = 0.0
+#forcing_data['datetime'] =  pd.to_datetime(forcing_data['datetime'],infer_datetime_format=True)
+#forcing_data.to_csv(forcing_path+'')
 # attr_data = pd.read_csv('/data/pmc5570/Sediment_model/scratch/SNTemp/Forcing/attr_new/Farshid_like_gages2_416.csv')
 # forcing_data = pd.read_feather('/data/pmc5570/no_dam_forcing_60__days118sites.feather')
 # forcing_data = pd.read_csv('/data/pmc5570/Sediment_model/scratch/SNTemp/Park_forcing/output_forcing/')
 # attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new', 'Farshid_like_PTT_nan20.csv')
-attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new','Fashid-like_gages2_pttbasin_added_415_newselection.csv')
+attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new','Fashid-like_gages2_412_final.csv')
 # attr_data =[]#pd.read_feather(attr_path)
 # # forcing_data.to_csv('/data/pmc5570/Farshidforcing.csv')
 # attr_data = pd.read_feather(attr_path)
 # attr_data = pd.read_feather('/data/pmc5570/no_dam_attr_temp60__days118sites.feather')
 attr_data = pd.read_csv(attr_path)
+#forcing_data.to_csv(forcing_path)
 # attr_data = pd.read_csv('/data/pmc5570/Sediment_model/scratch/SNTemp/attr_new/Farshid_like_gages2_416.csv')
 camels.initcamels(forcing_data, attr_data, Target, rootDatabase)  # initialize three camels module-scope variables in camels.py: dirDB, gageDict, statDict
 
@@ -77,7 +81,7 @@ camels.initcamels(forcing_data, attr_data, Target, rootDatabase)  # initialize t
 # be used to directly train the model when interfaceOpt == 0
 # define dataset
 optData = default.optDataCamels
-optData = default.update(optData, tRange=Ttrain, target=Target, doNorm=[True,True])  # Update the training period
+optData = default.update(optData, tRange=Ttrain, target=Target, doNorm=[True,False])  # Update the training period
 # define model and update parameters
 if torch.cuda.is_available():
     optModel = default.optLstm
@@ -133,7 +137,7 @@ if 0 in Action:
         np.random.seed(randomseed)
         torch.cuda.manual_seed(randomseed)
         torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = True  #Farshid False
+        torch.backends.cudnn.benchmark = True  #Farshid set as False
 
 
 
@@ -154,8 +158,7 @@ if 0 in Action:
         # the loaded model should be consistent with the 'name' in optModel Dict above for logging purpose
         lossFun = crit.RmseLoss()
         # the loaded loss should be consistent with the 'name' in optLoss Dict above for logging purpose
-        # update and write the dictionary variable to out folder for logging and future testing
-        masterDict = master.wrapMaster(out, optData, optModel, optLoss, optTrain)
+        # update and write the dictionary variable to out folder for logging and future testinge        masterDict = master.wrapMaster(out, optData, optModel, optLoss, optTrain)
         master.writeMasterFile(masterDict)
         # train model
 
@@ -191,33 +194,36 @@ if 2 in Action:
 
     outLst = [os.path.join(rootOut, save_path, x) for x in caseLst]
     subset = 'All'  # 'All': use all the CAMELS gages to test; Or pass the gage list
-    tRange = [19871001, 19881001]  # Testing period
+    tRange = [19951001, 19961001]  # Testing period
     predLst = list()
     obsLst = list()
-    # predLst_res = list()
-    # obsLst_res = list()
     statDictLst = []
+    #update dictionary: Don't want to remove Nan in obs
+    optData = default.update(optData, tRange=Ttrain, target=Target, doNorm=[True,False], rmNan=[False,False])
+    master.writeMasterFile(masterDict)
+    #optData['rmNan'][0] = False # we don't want to remove Nan in testing session
     for i, out in enumerate(outLst):
         #df, pred, obs = master.test(out, Target, forcing_path[i], attr_path[i], tRange=tRange, subset=subset, basinnorm=True, epoch=TestEPOCH, reTest=True)
-        df, pred, obs, x = master.test(out, Target, forcing_path, attr_path, tRange=tRange, subset=subset, basinnorm=False, epoch=TestEPOCH, reTest=True)
+        df, pred, obs, x = master.test(out, Target, forcing_path,
+                                       attr_path,
+                                       tRange=tRange,
+                                       subset=subset,
+                                       basinnorm=False,
+                                       epoch=TestEPOCH,
+                                       reTest=True,
+                                       )
 
-       
         predLst.append(pred) # the prediction list for all the models
         obsLst.append(obs)
         np.save(os.path.join(out, 'pred.npy'), pred)
         np.save(os.path.join(out, 'obs.npy'), obs)
         f = np.load(os.path.join(out, 'x.npy'))  # it has been saved previously in the out directory (forcings)
-        # S = (f[:, :, 1] + f[:, :, 1]) / 2    # mean air T for T_residual # Park something goes wrong here
-        # Sed = np.expand_dims(S, axis=2)
-        # pred_res = pred - Sed
-        # obs_res = obs - Sed
-        # predLst_res.append(pred_res)
-        # obsLst_res.append(obs_res)
+
     # calculate statistic metrics
        # statDict = stat.statError(pred.squeeze(), obs.squeeze())
       #  statDictLst.append([statDict])
 #    statDictLst1 = [stat.statError(x.squeeze(), obs.squeeze()) for x, y in predLst]
-    statDictLst = [stat.statError(x.squeeze(), y.squeeze()) for (x, y) in zip(predLst, obsLst)]
+    statDictLst = [stat.statError(pred, obs) for (pred, obs) in zip(predLst, obsLst)]
     # statDictLst_res = [stat.statError_res(x.squeeze(), y.squeeze(), z.squeeze(), w.squeeze()) for (x, y, z, w) in
     #                zip(predLst, obsLst, predLst_res, obsLst_res)]
 
@@ -258,7 +264,8 @@ if 2 in Action:
     xlabel = ['Bias','RMSE','ubRMSE', 'Corr','NSE','R2']
     fig = plot.plotBoxFig(dataBox, xlabel, label2=labelname, sharey=False, figsize=(16, 8))
     fig.patch.set_facecolor('white')
-    boxPlotName = "Target:"+Target+" ,epochs="+str(TestEPOCH)+" ,Hiddensize="+str(HIDDENSIZE)+" ,RHO="+str(RHO)+" ,Batches="+str(BATCH_SIZE)
+    Target_str = ''.join([str(elem) for elem in Target])
+    boxPlotName = "Target:"+Target_str+" ,epochs="+str(TestEPOCH)+" ,Hiddensize="+str(HIDDENSIZE)+" ,RHO="+str(RHO)+" ,Batches="+str(BATCH_SIZE)
     fig.suptitle(boxPlotName, fontsize=12)
     plt.rcParams['font.size'] = 12
 
