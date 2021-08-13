@@ -122,7 +122,7 @@ def readGageInfo(dirDB):
             out[s] = data[fieldLst.index(s)].values
     return out
 
-def readUsgsGage(usgsId, *, readQc=False):
+def readUsgsGage(usgsId, Target, *, readQc=False):
     ##ind = np.argwhere(gageDict['id'] == usgsId)[0][0]
     ##huc = gageDict['huc'][ind]
     ##usgsFile = os.path.join(dirDB, 'basin_timeseries_v1p2_metForcing_obsFlow',
@@ -131,83 +131,69 @@ def readUsgsGage(usgsId, *, readQc=False):
       ##                      '%08d_streamflow_qc.txt' % (usgsId))
     ##dataTemp = pd.read_csv(usgsFile, sep=r'\s+', header=None)
     ##obs = dataTemp[4].values
-    obs = forcing_data.loc[forcing_data['sta_id']==usgsId, Target].to_numpy().squeeze()
+
+    obs = forcing_data.loc[forcing_data['sta_id']==usgsId, Target].to_numpy()
+
     ##obs[obs < 0] = np.nan
-    if readQc is True:
-        qcDict = {'A': 1, 'A:e': 2, 'M': 3}
-        qc = np.array([qcDict[x] for x in dataTemp[5]])
-    if len(obs) != ntobs:
-      ##  out = np.full([ntobs], np.nan)
-        ##dfDate = dataTemp[[1, 2, 3]]
-        ##dfDate.columns = ['year', 'month', 'day']
-        ##date = pd.to_datetime(dfDate).values.astype('datetime64[D]')
-        if 'datetime' in forcing_data.columns:
-            date = forcing_data.loc[forcing_data['site_no']==usgsId, 'datetime']
-        elif 'date' in forcing_data.columns:
-            date = forcing_data.loc[forcing_data['site_no']==usgsId, 'date']
-        [C, ind1, ind2] = np.intersect1d(date, tLstobs, return_indices=True)
-        out[ind2] = obs
-        if readQc is True:
-            outQc = np.full([ntobs], np.nan)
-            outQc[ind2] = qc
-    else:
-        out = obs
-        if readQc is True:
-            outQc = qc
+    # if readQc is True:
+    #     qcDict = {'A': 1, 'A:e': 2, 'M': 3}
+    #     qc = np.array([qcDict[x] for x in dataTemp[5]])
+    # if len(obs) != ntobs:
+    #   ##  out = np.full([ntobs], np.nan)
+    #     ##dfDate = dataTemp[[1, 2, 3]]
+    #     ##dfDate.columns = ['year', 'month', 'day']
+    #     ##date = pd.to_datetime(dfDate).values.astype('datetime64[D]')
+    #     if 'datetime' in forcing_data.columns:
+    #         date = forcing_data.loc[forcing_data['sta_id']==usgsId, 'datetime']
+    #     elif 'date' in forcing_data.columns:
+    #         date = forcing_data.loc[forcing_data['sta_id']==usgsId, 'date']
+    #     [C, ind1, ind2] = np.intersect1d(date, tLstobs, return_indices=True)
+    #     out[ind2] = obs
+    #     if readQc is True:
+    #         outQc = np.full([ntobs], np.nan)
+    #         outQc[ind2] = qc
+    # else:
+    #     out = obs
+    #     if readQc is True:
+    #         outQc = qc
+    #
+    # if readQc is True:
+    #     return out, outQc
+    # else:
+    #     return out
+    return obs
 
-    if readQc is True:
-        return out, outQc
-    else:
-        return out
 
-
-def readUsgs(usgsIdLst):
+def readUsgs(usgsIdLst: object) -> object:
     t0 = time.time()
     y = np.empty([len(usgsIdLst), ntobs])
     for k in range(len(usgsIdLst)):
-        dataObs = readUsgsGage(usgsIdLst[k])
-        y[k, :] = dataObs
-    print("read SSC", time.time() - t0)
+        # print(usgsIdLst[k])
+        dataObs = readUsgsGage(usgsIdLst[k], Target)
+        y[k, :] = dataObs.flatten()
+    print("read ssc", time.time() - t0)
     return y
 
 
 def readForcingGage(usgsId, varLst=forcingLst, *, dataset='nldas'):
-    # dataset = daymet or maurer or nldas
-    ##forcingLst = ['dayl', 'prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']
-    ##ind = np.argwhere(gageDict['id'] == usgsId)[0][0]
-    ##huc = gageDict['huc'][ind]
-
-    ##dataFolder = os.path.join(
-      ##  dirDB, 'basin_timeseries_v1p2_metForcing_obsFlow',
-        ##'basin_dataset_public_v1p2', 'basin_mean_forcing')
-    if dataset is 'daymet':
-        tempS = 'cida'
-    else:
-        tempS = dataset
-   ## dataFile = os.path.join(dataFolder, dataset,
-     ##                       str(huc).zfill(2),
-       ##                     '%08d_lump_%s_forcing_leap.txt' % (usgsId, tempS))
-    ##dataTemp = pd.read_csv(dataFile, sep=r'\s+', header=None, skiprows=4)
-    dataTemp = forcing_data.loc[forcing_data['sta_id']==usgsId]
+    forc_variables = forcing_data.loc[forcing_data['sta_id']==usgsId]
     nf = len(varLst)
-    out = np.empty([nt, nf])
+    out = np.zeros([nt, nf])
     for k in range(nf):
-        # assume all files are of same columns. May check later.
-        ##ind = forcingLst.index(varLst[k])
-        ##out[:, k] = dataTemp[ind + 4].values
-        out[:, k] = dataTemp[varLst[k]].values
+        out[:, k] = forc_variables[varLst[k]].values
     return out
 
 
 def readForcing(usgsIdLst, varLst):
     t0 = time.time()
 
-    x = np.empty([len(usgsIdLst), nt, len(varLst)])
+    x = np.zeros([len(usgsIdLst), nt, len(varLst)])
 
     for k in range(len(usgsIdLst)):
         data = readForcingGage(usgsIdLst[k], varLst)
         x[k, :, :] = data
     print("read forcing data", time.time() - t0)
+    x = np.nan_to_num(x)
     return x
 
 
@@ -273,11 +259,23 @@ def calStat(x):
         std = 1
     return [p10, p90, mean, std]
 
-def calStatgamma(x):  # for daily streamflow and precipitation
+
+def calSed(x):
     a = x.flatten()
-    bb = a[~np.isnan(a)] # kick out Nan
+    bb = a[~np.isnan(a)]  # kick out Nan
     b = bb[bb != (-999999)]
-    b = np.log10(np.sqrt(b)+0.1) # do some tranformation to change gamma characteristics
+    b = np.log(b)  # do some tranformation to change gamma characteristics
+    p10 = np.percentile(b, 10).astype(float)
+    p90 = np.percentile(b, 90).astype(float)
+    mean = np.mean(b).astype(float)
+    std = np.std(b).astype(float)
+    if std < 0.001:
+        std = 1
+    return [p10, p90, mean, std]
+
+def calStatgamma(x):
+    a = x.flatten()
+    b = np.log10(np.sqrt(a)+0.1)
     p10 = np.percentile(b, 10).astype(float)
     p90 = np.percentile(b, 90).astype(float)
     mean = np.mean(b).astype(float)
@@ -288,7 +286,9 @@ def calStatgamma(x):  # for daily streamflow and precipitation
 
 def calStatbasinnorm(x):  # for daily streamflow normalized by basin area and precipitation
    ## basinarea = readAttr(gageDict['id'], ['area_gages2'])
-    x[x==(-999999)]=0
+    x[x<0]=0
+
+    # x[x = -99999] = 0
     #np.where(x==(-999999), 0, x)
     basinarea = attr_data['DRAIN_SQKM']
    ## meanprep = readAttr(gageDict['id'], ['p_mean'])
@@ -299,11 +299,15 @@ def calStatbasinnorm(x):  # for daily streamflow normalized by basin area and pr
     flowua = (x * 0.0283168 * 3600 * 24) / ((temparea * (10 ** 6)) * (tempprep * 10 ** (-2))/365) # unit (m^3/day)/(m^3/day)
     a = flowua.flatten()
     b = a[~np.isnan(a)] # kick out Nan
-    b = np.log10(np.sqrt(b)+0.1) # do some tranformation to change gamma characteristics plus 0.1 for 0 values
-    p10 = np.percentile(b, 10).astype(float)
-    p90 = np.percentile(b, 90).astype(float)
-    mean = np.mean(b).astype(float)
-    std = np.std(b).astype(float)
+    b = np.log10(np.sqrt(b)+0.1) # do some transformation to change gamma characteristics plus 0.1 for 0 values
+    #p10 = np.percentile(b, 10).astype(float)
+    #p90 = np.percentile(b, 90).astype(float)
+
+
+    p10 = np.nanpercentile(b, 10).astype(float)
+    p90 = np.nanpercentile(b, 90).astype(float)
+    mean = np.nanmean(b).astype(float)
+    std = np.nanstd(b).astype(float)
     if std < 0.001:
         std = 1
     return [p10, p90, mean, std]
@@ -311,19 +315,17 @@ def calStatbasinnorm(x):  # for daily streamflow normalized by basin area and pr
 
 def calStatAll():
     statDict = dict()
-    ##idLst = gageDict['id']
+
     idLst = forcing_data['sta_id'].unique()
-    # usgs streamflow
     y = readUsgs(idLst)
-    # statDict['usgsFlow'] = calStatgamma(y)
-    ##statDict['00060_Mean'] = calStatbasinnorm(y)
     if Target == ['80154_mean']:
-        statDict['80154_mean'] = calStat(y)    #calStatbasinnorm(y)
-    elif Target == 'combine_discharge':
-        statDict['00060_Mean'] = calStatbasinnorm(y)
+        statDict['80154_mean'] = calSed(y)    #calStatbasinnorm(y), calSed(y)
+    elif Target == ['streamflow']:
+        statDict['streamflow'] = calStatbasinnorm(y)
     else:
         statDict[Target] = calStat(y)
     # forcing
+    # x = readUsgs(idLst, forcingLst)
     x = readForcing(idLst, forcingLst)
     for k in range(len(forcingLst)):
         var = forcingLst[k]
@@ -331,7 +333,6 @@ def calStatAll():
             statDict[var] = calStatgamma(x[:, :, k])
         elif var=='PRCP (Daymet)':
             statDict[var] = calStatgamma(x[:, :, k])
-
         elif var=='streamflow':
             statDict[var] = calStatbasinnorm(x[:, :, k])
         else:
@@ -361,23 +362,27 @@ def transNorm(x, varLst, *, toNorm):
         stat = statDict[var]
         if toNorm is True:
             if len(x.shape) == 3:
-                if var == 'streamflow':
-                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k]) + 0.1)
-
+                if var == 'streamflow' or 'PRCP (Daymet)':
+                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k] + 0.1))
+                    #out[:, :, k] = (x[:, :, k] - stat[2]) / stat[3]
+                #simple standardization
                 out[:, :, k] = (x[:, :, k] - stat[2]) / stat[3]
+
             elif len(x.shape) == 2:
-                if var == 'APCP' or var == '80154_mean':
-                    x[:, k] = np.log10(np.sqrt(x[:, k]) + 0.1)
+                if var == 'PRCP (Daymet)' or var == '80154_mean':
+                    x[:, k] = np.log10(np.sqrt(x[:, k] + 0.1))
                 out[:, k] = (x[:, k] - stat[2]) / stat[3]
-        else:
+        else: #denormalization
             if len(x.shape) == 3:
                 out[:, :, k] = x[:, :, k] * stat[3] + stat[2]
-                if var == 'streamflow':
+                if var == 'streamflow' or 'PRCP (Daymet)': #or '80154_mean':
                     out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
+
+
 
             elif len(x.shape) == 2:
                 out[:, k] = x[:, k] * stat[3] + stat[2]
-                if var == 'APCP' or var == '80154_mean':
+                if var == 'PRCP (Daymet)':
                     out[:, k] = (np.power(10, out[:, k]) - 0.1) ** 2
 
 
@@ -485,7 +490,7 @@ class DataframeCamels(Dataframe):
             A = dfC.loc[dfC['STAID'] == ii]
             dfC1 = dfC1.append(A, ignore_index=True)
         dfC = dfC1
-        seg_id['site_no'] = dfC['STAID']
+        seg_id['STAID'] = dfC['STAID']
         df_pred[Target] = dfMain[Target]    #
 
         y = np.empty([nNodes, ntobs])
@@ -497,7 +502,7 @@ class DataframeCamels(Dataframe):
             kk = dfMain.columns.get_loc('sta_id')
             id = dfMain.iloc[a:a + 1, kk]
             val_mask = seg_id == id[a]
-            k = val_mask.index[val_mask['site_no'] == True][0]
+            k = val_mask.index[val_mask['STAID'] == True][0]
             y[k, :] = data.iloc[:, 0]
 
 
@@ -530,6 +535,7 @@ class DataframeCamels(Dataframe):
         #rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'SNTemp')
         inputfiles = os.path.join(forcing_path)   #   forcing_350days_T_S_GAGESII
         dfMain = pd.read_csv(inputfiles)
+        dfMain[dfMain['streamflow']<0] = 0
         inputfiles = os.path.join(attr_path)       #   attr_350days_T_S_GAGESII
         dfC = pd.read_csv(inputfiles)
         nNodes = len(dfC['STAID'])
@@ -556,16 +562,16 @@ class DataframeCamels(Dataframe):
             k = val_mask.index[val_mask['site_no'] == True][0]
 
             x[k, :, :] = data
-
-
+            x = np.nan_to_num(x)
         data = x # readForcing(self.usgsId, varLst) # data:[gage*day*variable]
-        C, ind1, ind2 = np.intersect1d(self.time, tLst, return_indices=True)
+        C, ind1, ind2 = np.intersect1d(self.time, tLst, return_indices=True) #C: training period, ind1: index of training days, ind2: index of testing? days
         data = data[:, ind2, :]
         if os.path.isdir(out):
             pass
         else:
             os.makedirs(out)
         np.save(os.path.join(out, 'x.npy'), data)
+        # Apply a normalization
         if doNorm is True:
             data = transNorm(data, varLst, toNorm=True)
         if rmNan is True:
