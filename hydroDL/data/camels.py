@@ -187,13 +187,14 @@ def readForcingGage(usgsId, varLst=forcingLst, *, dataset='nldas'):
 def readForcing(usgsIdLst, varLst):
     t0 = time.time()
 
-    x = np.zeros([len(usgsIdLst), nt, len(varLst)])
+    x = np.zeros([len(usgsIdLst), nt, len(varLst)])   #previous version is np.empty
 
     for k in range(len(usgsIdLst)):
         data = readForcingGage(usgsIdLst[k], varLst)
         x[k, :, :] = data
     print("read forcing data", time.time() - t0)
-    x = np.nan_to_num(x)
+    #changing nan to zero
+    #x = np.nan_to_num(x)
     return x
 
 
@@ -535,7 +536,8 @@ class DataframeCamels(Dataframe):
         #rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'SNTemp')
         inputfiles = os.path.join(forcing_path)   #   forcing_350days_T_S_GAGESII
         dfMain = pd.read_csv(inputfiles)
-        dfMain[dfMain['streamflow']<0] = 0
+        ############ I'm just curious the following line
+        dfMain[dfMain['streamflow']<0] = 0  # try to kick -99999 and some of negative values
         inputfiles = os.path.join(attr_path)       #   attr_350days_T_S_GAGESII
         dfC = pd.read_csv(inputfiles)
         nNodes = len(dfC['STAID'])
@@ -543,6 +545,7 @@ class DataframeCamels(Dataframe):
         id_order_dfMain = dfMain['sta_id'].unique()
         seg_id = pd.DataFrame() #what's this? same as the uniques?
         dfC1 = pd.DataFrame()
+        #selecting attribute by stations
         for i, ii in enumerate(id_order_dfMain):  # to have the same order of seg_id_nat in both dfMain & dfC
             A = dfC.loc[dfC['STAID'] == ii]
             dfC1 = dfC1.append(A, ignore_index=True)
@@ -562,7 +565,8 @@ class DataframeCamels(Dataframe):
             k = val_mask.index[val_mask['site_no'] == True][0]
 
             x[k, :, :] = data
-            x = np.nan_to_num(x)
+            #changing some nan to zero
+            #x = np.nan_to_num(x)
         data = x # readForcing(self.usgsId, varLst) # data:[gage*day*variable]
         C, ind1, ind2 = np.intersect1d(self.time, tLst, return_indices=True) #C: training period, ind1: index of training days, ind2: index of testing? days
         data = data[:, ind2, :]
