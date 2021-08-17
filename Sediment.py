@@ -14,11 +14,6 @@ import torch
 import pandas as pd
 import math
 import random
-5
-# forcing_list = ['forcing_60%_days_306sites.feather'
-#                 ]
-# attr_list = ['attr_temp60%_days_306sites.feather'
-#              ]
 
 
 # Options for different interface
@@ -29,22 +24,17 @@ interfaceOpt = 1
 
 # Options for training and testing
 # 0: train base model
-
 # 2: test trained models
 Action = [0,2]
 # Set hyperparameters for training or retraining
 EPOCH = 1
-BATCH_SIZE = 206
+BATCH_SIZE = 200
 RHO = 365
 HIDDENSIZE =100
 saveEPOCH = 1 # it was 50
 Ttrain = [19801001, 19951001]  # Training period. it was [19851001, 19951001]
 seed = None   # fixing the random seed. None means it is not fixed
-
-###############################
-Target = ['80154_mean']   # 'obs' or     or Q9Tw   '00010_Mean'  outlet_tave_water
-
-
+Target = ['80154_mean']
 absRoot = os.getcwd()
 
 
@@ -53,25 +43,10 @@ absRoot = os.getcwd()
 rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'SNTemp')  #  dataset root directory:
 rootOut = os.path.join(os.path.sep, absRoot, 'SSC_output', 'FirstRun')  # Model output root directory:
 
-forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Forcing_412_with_log_trans_dtfix.csv')  #
-# forcing_data =[]#pd.read_feather(forcing_path)
-# forcing_data = pd.read_csv(forcing_path)
+forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Forcing_412_with_log_trans_dtfix_fixnan.csv')  #
 forcing_data = pd.read_csv(forcing_path)
-#forcing_data[forcing_data['streamflow'] < 0.0] = 0.0
-#forcing_data['datetime'] =  pd.to_datetime(forcing_data['datetime'],infer_datetime_format=True)
-#forcing_data.to_csv(forcing_path+'')
-# attr_data = pd.read_csv('/data/pmc5570/Sediment_model/scratch/SNTemp/Forcing/attr_new/Farshid_like_gages2_416.csv')
-# forcing_data = pd.read_feather('/data/pmc5570/no_dam_forcing_60__days118sites.feather')
-# forcing_data = pd.read_csv('/data/pmc5570/Sediment_model/scratch/SNTemp/Park_forcing/output_forcing/')
-# attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new', 'Farshid_like_PTT_nan20.csv')
 attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new','Fashid-like_gages2_412_final.csv')
-# attr_data =[]#pd.read_feather(attr_path)
-# # forcing_data.to_csv('/data/pmc5570/Farshidforcing.csv')
-# attr_data = pd.read_feather(attr_path)
-# attr_data = pd.read_feather('/data/pmc5570/no_dam_attr_temp60__days118sites.feather')
 attr_data = pd.read_csv(attr_path)
-#forcing_data.to_csv(forcing_path)
-# attr_data = pd.read_csv('/data/pmc5570/Sediment_model/scratch/SNTemp/attr_new/Farshid_like_gages2_416.csv')
 camels.initcamels(forcing_data, attr_data, Target, rootDatabase)  # initialize three camels module-scope variables in camels.py: dirDB, gageDict, statDict
 
 
@@ -108,13 +83,7 @@ save_path = os.path.join(absRoot, exp_name, exp_disp, \
                                                                           optData['tRange'][1]))
 out = os.path.join(rootOut, save_path, 'Sed_test') # output folder to save results
 
-
-
-
 ##############################################################
-
-
-
 
 # Wrap up all the training configurations to one dictionary in order to save into "out" folder
 masterDict = master.wrapMaster(out, optData, optModel, optLoss, optTrain)
@@ -137,9 +106,7 @@ if 0 in Action:
         np.random.seed(randomseed)
         torch.cuda.manual_seed(randomseed)
         torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = True  #Farshid set as False
-
-
+        torch.backends.cudnn.benchmark = False  #Farshid set as False
 
         # load data
         df, x, y, c = master.loadData(optData, Target, forcing_path, attr_path, out)  # df: CAMELS dataframe; x: forcings; y: streamflow obs; c:attributes
@@ -160,11 +127,9 @@ if 0 in Action:
         # the loaded loss should be consistent with the 'name' in optLoss Dict above for logging purpose
         # update and write the dictionary variable to out folder for logging and future testinge        masterDict = master.wrapMaster(out, optData, optModel, optLoss, optTrain)
         master.writeMasterFile(masterDict)
+
         # train model
-
         out1 = out
-
-
         ############
         model = train.trainModel(
             model,
@@ -179,15 +144,11 @@ if 0 in Action:
     elif interfaceOpt==0: # directly train the model using dictionary variable
         master.train(masterDict)
 
-
-
-
 # Test models
 if 2 in Action:
     TestEPOCH = EPOCH     # it was 200  # choose the model to test after trained "TestEPOCH" epoches
     # generate a folder name list containing all the tested model output folders
     caseLst = ['Sed_test']#, '494-B247-H100','460-B230-H100' ,'327-B163-H100','258-B129-H100' ,'169-B169-H100', '29-B29-H100']
-
     nDayLst = [] #[1, 3]
     for nDay in nDayLst:
         caseLst.append('All-85-95-DI' + str(nDay))
@@ -201,9 +162,7 @@ if 2 in Action:
     #update dictionary: Don't want to remove Nan in obs
     optData = default.update(optData, tRange=Ttrain, target=Target, doNorm=[True,False], rmNan=[False,False])
     master.writeMasterFile(masterDict)
-    #optData['rmNan'][0] = False # we don't want to remove Nan in testing session
     for i, out in enumerate(outLst):
-        #df, pred, obs = master.test(out, Target, forcing_path[i], attr_path[i], tRange=tRange, subset=subset, basinnorm=True, epoch=TestEPOCH, reTest=True)
         df, pred, obs, x = master.test(out, Target, forcing_path,
                                        attr_path,
                                        tRange=tRange,
@@ -217,7 +176,7 @@ if 2 in Action:
         obsLst.append(obs)
         np.save(os.path.join(out, 'pred.npy'), pred)
         np.save(os.path.join(out, 'obs.npy'), obs)
-        f = np.load(os.path.join(out, 'x.npy'))  # it has been saved previously in the out directory (forcings)
+        f = np.load(os.path.join(out, 'x.npy'))  # it has been saved previously in the out directory
 
     # calculate statistic metrics
        # statDict = stat.statError(pred.squeeze(), obs.squeeze())
