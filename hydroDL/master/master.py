@@ -49,7 +49,7 @@ def loadModel(out, epoch=None):
 def namePred(out, tRange, subset, epoch=None, doMC=False, suffix=None):
     mDict = readMasterFile(out)
     if mDict['data']['name'] == 'hydroDL.data.camels.DataframeCamels':
-        target = ['Streamflow']
+        target = ['80154_mean']
     else:
         target = mDict['data']['target']
     if type(target) is not list:
@@ -185,7 +185,7 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
             doNorm=optData['doNorm'][0],
             rmNan=optData['rmNan'][0])
         y = df.getDataObs(Target, forcing_path, attr_path,
-            doNorm=optData['doNorm'][1] , rmNan=optData['rmNan'][1])    # doNorm=optData['doNorm'][1]     optData['rmNan'][1]
+            doNorm=optData['doNorm'][0] , rmNan=optData['rmNan'][0])    # doNorm=optData['doNorm'][1]     optData['rmNan'][1]
         c = df.getDataConst(forcing_path, attr_path,
             varLst=optData['varC'],
             doNorm=optData['doNorm'][0],
@@ -558,6 +558,7 @@ def test(out,
             reTest = True
     if reTest is True:
         print('Runing new results')
+        #load normalized data
         df, x, obs, c = loadData(optData, Target, forcing_path, attr_path, out)
         # c = None # temporary test
         model = loadModel(out, epoch=epoch)
@@ -572,8 +573,7 @@ def test(out,
     dataPred = np.zeros([obs.shape[0], obs.shape[1], len(filePathLst)])
     for k in range(len(filePathLst)):
         filePath = filePathLst[k]
-        dataPred[:, :, k] = pd.read_csv(
-            filePath, dtype=np.float, header=None).values
+        dataPred[:, :, k] = pd.read_csv(filePath, dtype=np.float, header=None).values
     isSigmaX = False
     if mDict['loss']['name'] == 'hydroDL.model.crit.SigmaLoss' or doMC is not False:
         isSigmaX = True
