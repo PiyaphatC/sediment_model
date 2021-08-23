@@ -1,11 +1,12 @@
 import sys
 sys.path.append('../')
-from hydroDL import master #utils
+from hydroDL import master, utils
 from hydroDL.master import default
 import matplotlib.pyplot as plt
 from hydroDL.data import camels
 from hydroDL.model import rnn, crit, train
 from hydroDL.post import plot, stat
+from hydroDL.data.camels import transNorm
 
 
 import numpy as np
@@ -25,14 +26,14 @@ interfaceOpt = 1
 # Options for training and testing
 # 0: train base model
 # 2: test trained models
-Action = [0,2]
+Action = [2]
 # Set hyperparameters for training or retraining
-EPOCH = 1
-BATCH_SIZE = 200
+EPOCH = 2000
+BATCH_SIZE = 100
 RHO = 365
 HIDDENSIZE =100
-saveEPOCH = 1 # it was 50
-Ttrain = [19801001, 19951001]  # Training period. it was [19851001, 19951001]
+saveEPOCH = 1# it was 50
+Ttrain = [19801001, 19851001]  # Training period. it was [19851001, 19951001]
 seed = None   # fixing the random seed. None means it is not fixed
 Target = ['80154_mean']
 absRoot = os.getcwd()
@@ -43,9 +44,9 @@ absRoot = os.getcwd()
 rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'SNTemp')  #  dataset root directory:
 rootOut = os.path.join(os.path.sep, absRoot, 'SSC_output', 'FirstRun')  # Model output root directory:
 
-forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Forcing_412_with_log_trans_dtfix_fixnan.csv')  #
+forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Forcing_412_with_log_trans_dtfix_fixnan_fill0.csv')  #
 forcing_data = pd.read_csv(forcing_path)
-attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new','Fashid-like_gages2_412_final.csv')
+attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new','final_25_attr_with_latlong.csv')
 attr_data = pd.read_csv(attr_path)
 camels.initcamels(forcing_data, attr_data, Target, rootDatabase)  # initialize three camels module-scope variables in camels.py: dirDB, gageDict, statDict
 
@@ -155,7 +156,7 @@ if 2 in Action:
 
     outLst = [os.path.join(rootOut, save_path, x) for x in caseLst]
     subset = 'All'  # 'All': use all the CAMELS gages to test; Or pass the gage list
-    tRange = [19951001, 19961001]  # Testing period
+    tRange = [19861001, 19871001]  # Testing period
     predLst = list()
     obsLst = list()
     statDictLst = []
@@ -171,9 +172,11 @@ if 2 in Action:
                                        epoch=TestEPOCH,
                                        reTest=True,
                                        )
-
+        # pred = transNorm(pred, Target, toNorm=False)
+        # obs  = transNorm(obs, Target, toNorm=False)
         predLst.append(pred) # the prediction list for all the models
         obsLst.append(obs)
+
         np.save(os.path.join(out, 'pred.npy'), pred)
         np.save(os.path.join(out, 'obs.npy'), obs)
         f = np.load(os.path.join(out, 'x.npy'))  # it has been saved previously in the out directory
@@ -182,7 +185,7 @@ if 2 in Action:
        # statDict = stat.statError(pred.squeeze(), obs.squeeze())
       #  statDictLst.append([statDict])
 #    statDictLst1 = [stat.statError(x.squeeze(), obs.squeeze()) for x, y in predLst]
-    statDictLst = [stat.statError(pred, obs) for (pred, obs) in zip(predLst, obsLst)]
+    statDictLst = [stat.statError(pred.squeeze(), obs.squeeze()) for (pred, obs) in zip(predLst, obsLst)]
     # statDictLst_res = [stat.statError_res(x.squeeze(), y.squeeze(), z.squeeze(), w.squeeze()) for (x, y, z, w) in
     #                zip(predLst, obsLst, predLst_res, obsLst_res)]
 
@@ -232,19 +235,19 @@ if 2 in Action:
     fig.show()
 
 
-    # Plot timeseries and locations
-
+    # # Plot timeseries and locations
+    #
     # gageindex=[0]
     # t = utils.time.tRange2Array(tRange)
-
-    # attr = pd.read_feather(attr_path)
-
-
-    # #plot.TempSeries_4_Plots_ERL(attr_path, statDictLst_res, obs, predLst, TempTarget, tRange, boxPlotName, rootOut, save_path, sites=18, Stations=None)
-
-    # plot.plotMap(statDictLst[0]['NSE'], lat=attr['lat'].to_numpy(), lon=attr['lon'].to_numpy(), title='NSE'+boxPlotName)
-
-
-    # plt.savefig((os.path.join(rootOut, save_path, "MapNSE-LowRes.png")), bbox_inches='tight')
-    # plt.show()
+    #
+    attr = pd.read_csv(attr_path)
+    #
+    #
+    # plot.TempSeries_4_Plots_ERL(attr_path, statDictLst, obs, predLst, Target, tRange, boxPlotName, rootOut, save_path, sites=18, Stations=None)
+    #
+    plot.plotMap(statDictLst[0]['RMSE'], lat=attr['lat'].to_numpy(), lon=attr['long'].to_numpy(), title='RMSE'+boxPlotName)
+    #
+    #
+    plt.savefig((os.path.join(rootOut, save_path, "MapNSE-LowRes.png")), bbox_inches='tight')
+    plt.show()
 
