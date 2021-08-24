@@ -37,7 +37,7 @@ ntobs = len(tLstobs)
 ##############   Water Temperature for CONUS scale  ##########
 # forcingLst = ['dayl(s)', 'prcp(mm/day)', 'srad(W/m2)', 'tmax(C)',
     #    'tmin(C)', 'vp(Pa)', '00060_Mean']   #, 'pred_discharge' , '00060_Mean' ,'combine_discharge', 'combine_discharge' 'swe(mm)' ,'outlet_outflow',, 'pred_discharge', , '00060_Mean'
-forcingLst = ['PRCP (Daymet)', 'streamflow'] #, '80154_mean']  
+forcingLst = ['PRCP (Daymet)'] #'streamflow'] #, '80154_mean']
 
 
 # attrLstSel = [  'NDAMS_2009',	'DDENS_2009',	'STOR_NID_2009',	
@@ -59,7 +59,7 @@ forcingLst = ['PRCP (Daymet)', 'streamflow'] #, '80154_mean']
 attrLstSel = ['PPTAVG_BASIN',
 	            'DDENS_2009',	'STOR_NID_2009',	'MAJ_DDENS_2009',
                 'DEVNLCD06',	'FORESTNLCD06',	'PLANTNLCD06',
-                'HGA',	'HGB',	'HGC',	'HGD',	'PERMAVE',	'NO4AVE',	'NO200AVE',	
+                'HGA',	'HGB',	'HGC',	'HGD',	'PERMAVE',	'NO4AVE',	'NO200AVE',
                 'NO10AVE',	'CLAYAVE',	'SILTAVE',	'SANDAVE',	'KFACT_UP',	
                 'RFACT',	'ELEV_MEAN_M_BASIN',	'SLOPE_PCT',	'ASPECT_DEGREES',	
                 'DRAIN_SQKM',	'HYDRO_DISTURB_INDX']
@@ -265,7 +265,7 @@ def calSed(x):
     a = x.flatten()
     bb = a[~np.isnan(a)]  # kick out Nan
     b = bb[bb != (-999999)]
-    b = np.log(b)  # do some tranformation to change gamma characteristics
+    b = np.log10(b)  # do some tranformation to change gamma characteristics
     p10 = np.percentile(b, 10).astype(float)
     p90 = np.percentile(b, 90).astype(float)
     mean = np.mean(b).astype(float)
@@ -321,8 +321,8 @@ def calStatAll():
     y = readUsgs(idLst)
     if Target == ['80154_mean']:
         statDict['80154_mean'] = calSed(y)    #calStatbasinnorm(y), calSed(y)
-    elif Target == ['streamflow']:
-        statDict['streamflow'] = calStatbasinnorm(y)
+    elif Target == ['streamflow'] or ['PRCP (Daymet)']:
+        statDict['streamflow'] = calStatgamma(y)
     else:
         statDict[Target] = calStat(y)
     # forcing
@@ -363,28 +363,34 @@ def transNorm(x, varLst, *, toNorm):
         stat = statDict[var]
         if toNorm is True:
             if len(x.shape) == 3:
-                if var == 'streamflow' or 'PRCP (Daymet)':
+                if var == 'streamflow' or var == 'PRCP (Daymet)':
                     x[:, :, k] = np.log10(np.sqrt(x[:, :, k] + 0.1))
-                    #out[:, :, k] = (x[:, :, k] - stat[2]) / stat[3]
+                elif var == '80154_mean':
+                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k]))
                 #simple standardization
                 out[:, :, k] = (x[:, :, k] - stat[2]) / stat[3]
 
             elif len(x.shape) == 2:
-                if var == 'PRCP (Daymet)' or var == '80154_mean':
+                if var == 'PRCP (Daymet)' or var == 'streamflow':
                     x[:, k] = np.log10(np.sqrt(x[:, k] + 0.1))
+                if var == '80154_mean':
+                    x[:, k] = np.log10(np.sqrt(x[:, k]))
                 out[:, k] = (x[:, k] - stat[2]) / stat[3]
         else: #denormalization
             if len(x.shape) == 3:
                 out[:, :, k] = x[:, :, k] * stat[3] + stat[2]
-                if var == 'streamflow' or 'PRCP (Daymet)': #or '80154_mean':
+                if var == 'streamflow' or var == 'PRCP (Daymet)':
                     out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
-
+                if var == '80154_mean':
+                    out[:, :, k] = (np.power(10, out[:, :, k])) ** 2
 
 
             elif len(x.shape) == 2:
                 out[:, k] = x[:, k] * stat[3] + stat[2]
-                if var == 'PRCP (Daymet)':
+                if var == 'streamflow' or 'PRCP (Daymet)':
                     out[:, k] = (np.power(10, out[:, k]) - 0.1) ** 2
+                if var == '80154_mean':
+                    out[:, k] = (np.power(10, out[:, k])) ** 2
 
 
     return out
@@ -478,7 +484,7 @@ class DataframeCamels(Dataframe):
 
     def getDataObs(self, Target, forcing_path, attr_path, *, doNorm=False, rmNan=False, basinnorm = False):
 
-        df_pred = pd.DataFrame()
+        df_obs = pd.DataFrame()
         inputfiles = os.path.join(forcing_path)   #obs_18basins     forcing_350days_T_S_GAGESII
         dfMain = pd.read_csv(inputfiles)
         inputfiles = os.path.join(attr_path)    #attr_18basins   attr_350days_T_S_GAGESII
@@ -492,14 +498,14 @@ class DataframeCamels(Dataframe):
             dfC1 = dfC1.append(A, ignore_index=True)
         dfC = dfC1
         seg_id['STAID'] = dfC['STAID']
-        df_pred[Target] = dfMain[Target]    #
+        df_obs[Target] = dfMain[Target]    #
 
         y = np.empty([nNodes, ntobs])
         for i in range(nNodes):
            
             a = ntobs * i
             b = ntobs * (i + 1)
-            data = df_pred.iloc[a:b]
+            data = df_obs.iloc[a:b]
             kk = dfMain.columns.get_loc('sta_id')
             id = dfMain.iloc[a:a + 1, kk]
             val_mask = seg_id == id[a]
@@ -521,7 +527,7 @@ class DataframeCamels(Dataframe):
      #       data = basinNorm(data, gageid=self.usgsId, toNorm=True)
         data = np.expand_dims(data, axis=2)
         C, ind1, ind2 = np.intersect1d(self.time, tLstobs, return_indices=True)
-        data = data[:, ind2, :]
+        data = data[:, ind2, :]  # What is this line?
         if doNorm is True:
             data = transNorm(data, Target, toNorm=True)
         if rmNan is True:
@@ -561,10 +567,12 @@ class DataframeCamels(Dataframe):
             data = forcing.iloc[a:b, :]
             kk = dfMain.columns.get_loc('sta_id')
             id = dfMain.iloc[a:a+1, kk]
-            val_mask = seg_id == id[a]
-            k = val_mask.index[val_mask['site_no'] == True][0]
+            #val_mask = seg_id == id[a]
+            #k = val_mask.index[val_mask['site_no'] == True][0]
 
-            x[k, :, :] = data
+            x[i, :, :] = data
+
+            #print(x.size)
             #changing some nan to zero
             #x = np.nan_to_num(x)
         data = x # readForcing(self.usgsId, varLst) # data:[gage*day*variable]
@@ -574,7 +582,7 @@ class DataframeCamels(Dataframe):
             pass
         else:
             os.makedirs(out)
-        np.save(os.path.join(out, 'x.npy'), data)
+        np.save(os.path.join(out, 'x.npy'), data) #x.npy = forcing data
         # Apply a normalization
         if doNorm is True:
             data = transNorm(data, varLst, toNorm=True)
