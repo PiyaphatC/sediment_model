@@ -26,7 +26,7 @@ interfaceOpt = 1
 # Options for training and testing
 # 0: train base model
 # 2: test trained models
-Action = [2]
+Action = [0,2]
 # Set hyperparameters for training or retraining
 EPOCH = 2000
 BATCH_SIZE = 100
@@ -245,7 +245,7 @@ if 2 in Action:
     #
     # plot.TempSeries_4_Plots_ERL(attr_path, statDictLst, obs, predLst, Target, tRange, boxPlotName, rootOut, save_path, sites=18, Stations=None)
     #
-    plot.plotMap(statDictLst[0]['RMSE'], lat=attr['lat'].to_numpy(), lon=attr['long'].to_numpy(), title='RMSE'+boxPlotName)
+    plot.plotMap(statDictLst[0]['NSE'], lat=attr['lat'].to_numpy(), lon=attr['long'].to_numpy(), title='RMSE'+boxPlotName)
     #
     #
     plt.savefig((os.path.join(rootOut, save_path, "MapNSE-LowRes.png")), bbox_inches='tight')
