@@ -14,7 +14,7 @@ import os
 #os.environ[
  #    'PROJ_LIB'] = r'G:\Farshid\myenvs\conda-meta'
  #r'/opt/anaconda/pkgs/proj4-5.2.0-he6710b0_1/share/proj/'
-# from mpl_toolkits import basemap
+from mpl_toolkits import basemap
 # from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
                             #    AutoMinorLocator)
 import matplotlib.dates as mdates
@@ -401,7 +401,7 @@ def plotMap(data,
         ax.set_title(title, fontsize=26)
 
     ax.legend(handles=[cs],
-            labels=['$\ LSTM_{obsQ}$'],
+            labels=['$\ LSTM_{OBS SSC}$'],
             loc='lower right',
             fontsize=22)
     if ax is None:
