@@ -6,7 +6,7 @@ keyLst = ['Bias', 'RMSE', 'ubRMSE', 'Corr']
 
 def statError(pred, target):
     ngrid, nt = pred.shape  # I changed it? Park changes this from "pred.shape" to "len(pred"
-
+    #ngrid: number of basin
 
 
     #############################################
@@ -36,8 +36,8 @@ def statError(pred, target):
     PBiashigh = np.full(ngrid, np.nan)
     PBias = np.full(ngrid, np.nan)
     for k in range(0, ngrid):
-        x = pred[k, :]
-        y = target[k, :]
+        x = pred[k, :]   #predicted SSC
+        y = target[k, :] #observed SSC
         ind = np.where(np.logical_and(~np.isnan(x), ~np.isnan(y)))[0]
         if ind.shape[0] > 0:
             xx = x[ind]
@@ -75,7 +75,7 @@ def statError(pred, target):
                 yymean = yy.mean()
                 SST = np.sum((yy-yymean)**2)
                 SSReg = np.sum((xx-yymean)**2)
-                SSRes = np.sum((yy-xx)**2)
+                SSRes = np.sum((xx-yy)**2)
                 NSE[k] = 1-SSRes/SST
                 xxmean = xx.mean()
                 R2[k] = ((np.sum((yy-yymean)*(xx-xxmean))) / (((np.sum((yy-yymean)**2)) ** 0.5)*(np.sum((xx - xxmean)**2)) ** 0.5))**2
@@ -164,21 +164,23 @@ def statError_res(pred, target, pred_res, target_res):
             # percent bias
             PBias[k] = np.sum(xx - yy) / np.sum(yy) * 100
 
-            # FHV the peak flows bias 10%
-            # FLV the low flows bias bottom 30%, log space
-            pred_sort = np.sort(xx)
-            target_sort = np.sort(yy)
-            indexlow = round(0.3 * len(pred_sort))
-            indexhigh = round(0.9 * len(pred_sort))
-            lowpred = pred_sort[:indexlow]
-            highpred = pred_sort[indexhigh:]
-            lowtarget = target_sort[:indexlow]
-            hightarget = target_sort[indexhigh:]
-            PBiaslow[k] = np.sum(lowpred - lowtarget) / np.sum(lowtarget) * 100
-            PBiashigh[k] = np.sum(highpred - hightarget) / np.sum(hightarget) * 100
+            # # FHV the peak flows bias 10%
+            # # FLV the low flows bias bottom 30%, log space
+            # pred_sort = np.sort(xx)
+            # target_sort = np.sort(yy)
+            # indexlow = round(0.3 * len(pred_sort))
+            # indexhigh = round(0.9 * len(pred_sort))
+            # lowpred = pred_sort[:indexlow]
+            # highpred = pred_sort[indexhigh:]
+            # lowtarget = target_sort[:indexlow]
+            # hightarget = target_sort[indexhigh:]
+            # PBiaslow[k] = np.sum(lowpred - lowtarget) / np.sum(lowtarget) * 100
+            # PBiashigh[k] = np.sum(highpred - hightarget) / np.sum(hightarget) * 100
 
             if ind.shape[0] > 1:
                 # Theoretically at least two points for correlation
+                # xx = predicted value
+                # yy = observed value
                 Corr[k] = scipy.stats.pearsonr(xx, yy)[0]
                 yymean = yy.mean()
                 SST = np.sum((yy-yymean)**2)
