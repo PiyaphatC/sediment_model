@@ -357,11 +357,8 @@ class CudnnLstmModel(torch.nn.Module):
         self.ct = 0
         self.nLayer = 1
         self.linearIn = torch.nn.Linear(nx, hiddenSize)
-        self.lstm = CudnnLstm(                                           # LSTMcell_untied CudnnLstm farshid
+        self.lstm = CudnnLstm(                                           # LSTM cell_untied CudnnLstm
             inputSize=hiddenSize, hiddenSize=hiddenSize, dr=dr)          # for LSTM-untied:    inputSize=hiddenSize, hiddenSize=hiddenSize, dr=dr, drMethod='drW', gpu=-1)
-        #self.lstm = LSTMcell_untied(
-         #   inputSize=hiddenSize, hiddenSize=hiddenSize, dr=dr, drMethod='drW', gpu=-1)
-
         self.linearOut = torch.nn.Linear(hiddenSize, ny)
         self.gpu = 1
 
