@@ -48,7 +48,7 @@ def trainModel(model,
         t0 = time.time()
         for iIter in range(0, nIterEp):
             # training iterations
-            if type(model) in [rnn.CudnnLstmModel, rnn.AnnModel, rnn.CpuLstmModel]:   # What does it mean?
+            if type(model) in [rnn.CudnnLstmModel, rnn.AnnModel, rnn.CpuLstmModel]:
                 iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
                 xTrain = selectSubset(x, iGrid, iT, rho, c=c)
                 # xTrain = rho/time * Batchsize * Ninput_var
