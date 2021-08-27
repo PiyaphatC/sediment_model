@@ -17,44 +17,8 @@ tLstobs = utils.time.tRange2Array(tRangeobs)
 nt = len(tLst)
 ntobs = len(tLstobs)
 
-###############  for a paper with two upstream node with temp data  ###############
-#forcingLst = ['Q3Tw', 'Q7Tw', 'Q3Q', 'Q5Q', 'Q7Q',
- #      'Q9Q', 'Btamean', 'V', 'Pressure', 'SkyCov', 'SR.sum', 'Precip',
-#       ]
-###################################################################################
 
-###############   for stream_temp Module  ####################
-##forcingLst = ['basin_ccov', 'basin_humid', 'basin_rain',
-  ##     'basin_tave_air', 'basin_gwflow', 'basin_potet', 'basin_sroff',
-    ##   'basin_ssflow', 'basin_swrad', 'basin_tave_gw',
-      ## 'basin_tave_ss', 'network_width','outlet_width', 'outlet_outflow', 'gw_tau', 'ss_tau']  #, 'gw_tau', 'ss_tau' 'obs_discharge'
-
-##attrLstSel = ['hru_elev', 'hru_slope', 'network_elev',
-  ##     'outlet_elev', 'network_length', 'network_slope', 'outlet_slope',
-    ##   'basin_area']
-################################################################
-
-##############   Water Temperature for CONUS scale  ##########
-# forcingLst = ['dayl(s)', 'prcp(mm/day)', 'srad(W/m2)', 'tmax(C)',
-    #    'tmin(C)', 'vp(Pa)', '00060_Mean']   #, 'pred_discharge' , '00060_Mean' ,'combine_discharge', 'combine_discharge' 'swe(mm)' ,'outlet_outflow',, 'pred_discharge', , '00060_Mean'
 forcingLst = ['PRCP (Daymet)'] #'streamflow'] #, '80154_mean']
-
-
-# attrLstSel = [  'NDAMS_2009',	'DDENS_2009',	'STOR_NID_2009',	
-#                 'STOR_NOR_2009',	'MAJ_NDAMS_2009',	'MAJ_DDENS_2009',	
-#                 'DEVNLCD06',	'FORESTNLCD06',	'PLANTNLCD06',	'WATERNLCD06',	
-#                 'SNOWICENLCD06',	'DEVOPENNLCD06',	'DEVLOWNLCD06',	'DEVMEDNLCD06',	
-#                 'DEVHINLCD06',	'BARRENNLCD06',	'DECIDNLCD06',	'EVERGRNLCD06',	
-#                 'MIXEDFORNLCD06',	'SHRUBNLCD06',	'GRASSNLCD06',	'PASTURENLCD06',
-#                 'CROPSNLCD06',	'WOODYWETNLCD06',	'MAINS800_FOREST',
-#                 'MAINS800_PLANT',	'RIP100_DEV',	'RIP100_FOREST',	
-#                 'RIP100_PLANT',	'RIP800_DEV',	'RIP800_FOREST',	'RIP800_PLANT',	
-#                 'PERMAVE',	'BDAVE',	'OMAVE',	'WTDEPAVE',	
-#                 'ROCKDEPAVE',	'NO4AVE',	'NO200AVE',	'NO10AVE',	
-#                 'CLAYAVE',	'SILTAVE',	'SANDAVE',	'KFACT_UP',	'RFACT',
-#                 'BASIN_BOUNDARY_CONFIDENCE','PPTAVG_BASIN',	'DRAIN_SQKM',	
-#                 'HYDRO_DISTURB_INDX']  ##Farshid_like
-
 # attr below are the new selection
 attrLstSel = ['PPTAVG_BASIN',
 	            'DDENS_2009',	'STOR_NID_2009',	'MAJ_DDENS_2009',
@@ -63,49 +27,7 @@ attrLstSel = ['PPTAVG_BASIN',
                 'NO10AVE',	'CLAYAVE',	'SILTAVE',	'SANDAVE',	'KFACT_UP',	
                 'RFACT',	'ELEV_MEAN_M_BASIN',	'SLOPE_PCT',	'ASPECT_DEGREES',	
                 'DRAIN_SQKM',	'HYDRO_DISTURB_INDX']
-# # attrLstSel = ['DRAIN_SQKM',
 
-#        'STREAMS_KM_SQ_KM',
-#        'STOR_NID_2009', 'FORESTNLCD06', 'PLANTNLCD06',
-#        'SLOPE_PCT', 'RAW_DIS_NEAREST_MAJ_DAM',
-
-#       'PERDUN', 'RAW_DIS_NEAREST_DAM', 'RAW_AVG_DIS_ALL_MAJ_DAMS',
-#     'T_MIN_BASIN', 'T_MINSTD_BASIN', 'RH_BASIN', 'RAW_AVG_DIS_ALLDAMS', 'PPTAVG_BASIN',
-#      'HIRES_LENTIC_PCT','T_AVG_BASIN', 'T_MAX_BASIN','T_MAXSTD_BASIN', 'NDAMS_2009', 'ELEV_MEAN_M_BASIN'] #, 'MAJ_NDAMS_2009',
-# # attrLstSel = ['DRAIN_SQKM', 'PPTAVG_BASIN', 'T_AVG_BASIN', 'T_MAX_BASIN',
-#        'T_MAXSTD_BASIN', 'T_MIN_BASIN', 'T_MINSTD_BASIN', 'RH_BASIN',
-#        'STREAMS_KM_SQ_KM', 'PERDUN', 'HIRES_LENTIC_PCT', 'NDAMS_2009',
-#        'STOR_NID_2009', 'FORESTNLCD06', 'PLANTNLCD06', 'ELEV_MEAN_M_BASIN',
-#        'SLOPE_PCT', 'RAW_DIS_NEAREST_DAM', 'RAW_AVG_DIS_ALLDAMS',
-#        'RAW_DIS_NEAREST_MAJ_DAM', 'RAW_AVG_DIS_ALL_MAJ_DAMS',
-#        'MAJ_NDAMS_2009', 'POWER_NUM_PTS', 'POWER_SUM_MW', 'lat', 'lon',
-#        'HYDRO_DISTURB_INDX', 'BFI_AVE', 'FRAGUN_BASIN', 'DEVNLCD06',
-#        'PERMAVE', 'RFACT', 'BARRENNLCD06', 'DECIDNLCD06', 'EVERGRNLCD06',
-#        'MIXEDFORNLCD06', 'SHRUBNLCD06', 'GRASSNLCD06', 'WOODYWETNLCD06',
-#        'EMERGWETNLCD06', 'GEOL_REEDBUSH_DOM_PCT',
-#        'STRAHLER_MAX', 'MAINSTEM_SINUOUSITY', 'REACHCODE', 'ARTIFPATH_PCT',
-#        'ARTIFPATH_MAINSTEM_PCT', 'PERHOR', 'TOPWET', 'CONTACT', 'CANALS_PCT',
-#        'RAW_AVG_DIS_ALLCANALS', 'NPDES_MAJ_DENS', 'RAW_AVG_DIS_ALL_MAJ_NPDES',
-#        'FRESHW_WITHDRAWAL', 'PCT_IRRIG_AG', 'ROADS_KM_SQ_KM',
-#        'PADCAT1_PCT_BASIN', 'PADCAT2_PCT_BASIN']
-
-########################################################################
-############# Streamflow prediction for CONUS scale  ##########################
-# attrLstSel = ['ELEV_MEAN_M_BASIN', 'SLOPE_PCT', 'DRAIN_SQKM',
-#       'HYDRO_DISTURB_INDX', 'STREAMS_KM_SQ_KM', 'BFI_AVE', 'NDAMS_2009',
-#       'STOR_NID_2009', 'RAW_DIS_NEAREST_DAM', 'FRAGUN_BASIN', 'DEVNLCD06',
-#       'FORESTNLCD06', 'PLANTNLCD06', 'PERMAVE', 'RFACT',
-#       'PPTAVG_BASIN', 'BARRENNLCD06', 'DECIDNLCD06', 'EVERGRNLCD06',
-#       'MIXEDFORNLCD06', 'SHRUBNLCD06', 'GRASSNLCD06', 'WOODYWETNLCD06',
-#       'EMERGWETNLCD06', 'GEOL_REEDBUSH_DOM_PCT',
-#        'STRAHLER_MAX', 'MAINSTEM_SINUOUSITY', 'REACHCODE', 'ARTIFPATH_PCT',
-#       'ARTIFPATH_MAINSTEM_PCT', 'HIRES_LENTIC_PCT', 'PERDUN', 'PERHOR',
-#       'TOPWET', 'CONTACT', 'CANALS_PCT', 'RAW_AVG_DIS_ALLCANALS',
-#        'NPDES_MAJ_DENS', 'RAW_AVG_DIS_ALL_MAJ_NPDES',
-#       'RAW_AVG_DIS_ALL_MAJ_DAMS', 'FRESHW_WITHDRAWAL', 'PCT_IRRIG_AG',
-#       'POWER_NUM_PTS', 'POWER_SUM_MW', 'ROADS_KM_SQ_KM', 'PADCAT1_PCT_BASIN',
-#       'PADCAT2_PCT_BASIN']   # 'GEOL_REEDBUSH_SITE', , 'AWCAVE'
-##############################################################################
 def readGageInfo(dirDB):
     gageFile = os.path.join(dirDB, 'basin_timeseries_v1p2_metForcing_obsFlow',
                             'basin_dataset_public_v1p2', 'basin_metadata',
@@ -123,57 +45,17 @@ def readGageInfo(dirDB):
     return out
 
 def readUsgsGage(usgsId, Target, *, readQc=False):
-    ##ind = np.argwhere(gageDict['id'] == usgsId)[0][0]
-    ##huc = gageDict['huc'][ind]
-    ##usgsFile = os.path.join(dirDB, 'basin_timeseries_v1p2_metForcing_obsFlow',
-          ##                  'basin_dataset_public_v1p2', 'usgs_streamflow',
-        ##                    str(huc).zfill(2),
-      ##                      '%08d_streamflow_qc.txt' % (usgsId))
-    ##dataTemp = pd.read_csv(usgsFile, sep=r'\s+', header=None)
-    ##obs = dataTemp[4].values
-
     obs = forcing_data.loc[forcing_data['sta_id']==usgsId, Target].to_numpy()
-
-    ##obs[obs < 0] = np.nan
-    # if readQc is True:
-    #     qcDict = {'A': 1, 'A:e': 2, 'M': 3}
-    #     qc = np.array([qcDict[x] for x in dataTemp[5]])
-    # if len(obs) != ntobs:
-    #   ##  out = np.full([ntobs], np.nan)
-    #     ##dfDate = dataTemp[[1, 2, 3]]
-    #     ##dfDate.columns = ['year', 'month', 'day']
-    #     ##date = pd.to_datetime(dfDate).values.astype('datetime64[D]')
-    #     if 'datetime' in forcing_data.columns:
-    #         date = forcing_data.loc[forcing_data['sta_id']==usgsId, 'datetime']
-    #     elif 'date' in forcing_data.columns:
-    #         date = forcing_data.loc[forcing_data['sta_id']==usgsId, 'date']
-    #     [C, ind1, ind2] = np.intersect1d(date, tLstobs, return_indices=True)
-    #     out[ind2] = obs
-    #     if readQc is True:
-    #         outQc = np.full([ntobs], np.nan)
-    #         outQc[ind2] = qc
-    # else:
-    #     out = obs
-    #     if readQc is True:
-    #         outQc = qc
-    #
-    # if readQc is True:
-    #     return out, outQc
-    # else:
-    #     return out
     return obs
-
 
 def readUsgs(usgsIdLst: object) -> object:
     t0 = time.time()
     y = np.empty([len(usgsIdLst), ntobs])
     for k in range(len(usgsIdLst)):
-        # print(usgsIdLst[k])
         dataObs = readUsgsGage(usgsIdLst[k], Target)
         y[k, :] = dataObs.flatten()
     print("read ssc", time.time() - t0)
     return y
-
 
 def readForcingGage(usgsId, varLst=forcingLst, *, dataset='nldas'):
     forc_variables = forcing_data.loc[forcing_data['sta_id']==usgsId]
