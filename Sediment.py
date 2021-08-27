@@ -28,11 +28,11 @@ interfaceOpt = 1
 # 2: test trained models
 Action = [0,2]
 # Set hyperparameters for training or retraining
-EPOCH = 2000
+EPOCH = 10
 BATCH_SIZE = 100
 RHO = 365
 HIDDENSIZE =100
-saveEPOCH = 1# it was 50
+saveEPOCH = 10 # it was 50
 Ttrain = [19801001, 19851001]  # Training period. it was [19851001, 19951001]
 seed = None   # fixing the random seed. None means it is not fixed
 Target = ['80154_mean']
@@ -41,8 +41,8 @@ absRoot = os.getcwd()
 
 # Define root directory of database and output
 # Modify this based on your own location
-rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'SNTemp')  #  dataset root directory:
-rootOut = os.path.join(os.path.sep, absRoot, 'SSC_output', 'FirstRun')  # Model output root directory:
+rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'Sed_datasets')  #  dataset root directory:
+rootOut = os.path.join(os.path.sep, absRoot, 'SSC_output', 'Results')  # Model output root directory:
 
 forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Forcing_412_with_log_trans_dtfix_fixnan_fill0.csv')  #
 forcing_data = pd.read_csv(forcing_path)
@@ -72,7 +72,7 @@ optLoss = default.optLossRMSE
 optTrain = default.update(default.optTrainCamels, miniBatch=[BATCH_SIZE, RHO], nEpoch=EPOCH, saveEpoch=saveEPOCH, seed=seed)
 # define output folder for model results
 exp_name = 'Sed'
-exp_disp = 'FirstRun'
+exp_disp = 'Results'
 
 
 save_path = os.path.join(absRoot, exp_name, exp_disp, \
@@ -201,7 +201,7 @@ if 2 in Action:
         count = count +1
     mdstd = pd.DataFrame(mdstd, index=statDictLst[0].keys(), columns=['median', 'STD','mean'])
 
-    mdstd.to_csv((os.path.join(rootOut, save_path, "mdstd.csv")))
+    mdstd.to_csv((os.path.join(rootOut, save_path, "med_std_mean.csv")))
 
 
 
