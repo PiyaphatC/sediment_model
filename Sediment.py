@@ -33,7 +33,7 @@ BATCH_SIZE = 100
 RHO = 365
 HIDDENSIZE =100
 saveEPOCH = 10 # it was 50
-Ttrain = [19801001, 19851001]  # Training period. it was [19851001, 19951001]
+Ttrain = [20001001, 20051001]  # Training period. it was [19851001, 19951001]
 seed = None   # fixing the random seed. None means it is not fixed
 Target = ['80154_mean']
 absRoot = os.getcwd()
@@ -44,9 +44,20 @@ absRoot = os.getcwd()
 rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'Sed_datasets')  #  dataset root directory:
 rootOut = os.path.join(os.path.sep, absRoot, 'SSC_output', 'Results')  # Model output root directory:
 
-forcing_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'Forcing_412_with_log_trans_dtfix_fixnan_fill0.csv')  #
+forcing_path = os.path.join(os.path.sep,
+                            rootDatabase,
+                            'Forcing',
+                            'Forcing_new',
+                            'Forcing_412_with_log_trans_dtfix.csv')  #
 forcing_data = pd.read_csv(forcing_path)
-attr_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'attr_new','final_25_attr_with_latlong.csv')
+#forcing_data.loc[forcing_data['80154_mean'] > 10000.0] = 10000.0
+forcing_data['80154_mean'].mask(forcing_data['80154_mean'] > 10000.0, 10000.0, inplace=True)
+forcing_data['streamflow'].mask(forcing_data['streamflow'] < 0.0, 0.0, inplace=True)
+attr_path = os.path.join(os.path.sep,
+                         rootDatabase,
+                         'Forcing',
+                         'attr_new',
+                         'final_25_attr_with_latlong.csv')
 attr_data = pd.read_csv(attr_path)
 camels.initcamels(forcing_data, attr_data, Target, rootDatabase)  # initialize three camels module-scope variables in camels.py: dirDB, gageDict, statDict
 
@@ -156,7 +167,7 @@ if 2 in Action:
 
     outLst = [os.path.join(rootOut, save_path, x) for x in caseLst]
     subset = 'All'  # 'All': use all the CAMELS gages to test; Or pass the gage list
-    tRange = [19861001, 19871001]  # Testing period
+    tRange = [20011001, 20031001]  # Testing period
     predLst = list()
     obsLst = list()
     statDictLst = []
