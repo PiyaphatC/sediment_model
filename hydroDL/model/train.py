@@ -25,6 +25,10 @@ def trainModel(model,
     ngrid, nt, nx = x.shape
     if c is not None:
         nx = nx + c.shape[-1]
+    if batchSize >= ngrid:
+        # batchsize larger than total grids
+        batchSize = ngrid
+    #what's this?
     nIterEp = int(
         np.ceil(np.log(0.01) / np.log(1 - batchSize * rho / ngrid / nt)))
     if hasattr(model, 'ctRm'):
@@ -55,22 +59,22 @@ def trainModel(model,
                 yTrain = selectSubset(y, iGrid, iT, rho)
                 # yTrain = rho/time * Batchsize * Ntraget_var
                 yP = model(xTrain)
-            if type(model) in [rnn.CudnnLstmModel_R2P]:
-                # yP = rho/time * Batchsize * Ntraget_var
-                iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
-                xTrain = selectSubset(x, iGrid, iT, rho, c=c, tupleOut=True)
-                yTrain = selectSubset(y, iGrid, iT, rho)
-                yP, Param_R2P = model(xTrain)
-            if type(model) in [rnn.LstmCloseModel, rnn.AnnCloseModel, rnn.CNN1dLSTMmodel, rnn.CNN1dLSTMInmodel,
-                               rnn.CNN1dLCmodel, rnn.CNN1dLCInmodel]:
-                iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
-                xTrain = selectSubset(x, iGrid, iT, rho, c=c)
-                yTrain = selectSubset(y, iGrid, iT, rho)
-                if type(model) in [rnn.CNN1dLCmodel, rnn.CNN1dLCInmodel]:
-                    zTrain = selectSubset(z, iGrid, iT=None, rho=None)
-                else:
-                    zTrain = selectSubset(z, iGrid, iT, rho)
-                yP = model(xTrain, zTrain)
+            # if type(model) in [rnn.CudnnLstmModel_R2P]:
+            #     # yP = rho/time * Batchsize * Ntraget_var
+            #     iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
+            #     xTrain = selectSubset(x, iGrid, iT, rho, c=c, tupleOut=True)
+            #     yTrain = selectSubset(y, iGrid, iT, rho)
+            #     yP, Param_R2P = model(xTrain)
+            # if type(model) in [rnn.LstmCloseModel, rnn.AnnCloseModel, rnn.CNN1dLSTMmodel, rnn.CNN1dLSTMInmodel,
+            #                    rnn.CNN1dLCmodel, rnn.CNN1dLCInmodel]:
+            #     iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
+            #     xTrain = selectSubset(x, iGrid, iT, rho, c=c)
+            #     yTrain = selectSubset(y, iGrid, iT, rho)
+            #     if type(model) in [rnn.CNN1dLCmodel, rnn.CNN1dLCInmodel]:
+            #         zTrain = selectSubset(z, iGrid, iT=None, rho=None)
+            #     else:
+            #         zTrain = selectSubset(z, iGrid, iT, rho)
+            #     yP = model(xTrain, zTrain)
 
             # if type(model) in [hydroDL.model.rnn.LstmCnnCond]:
             #     iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
@@ -84,12 +88,12 @@ def trainModel(model,
             #     yTrain = selectSubset(y, iGrid, iT + model.ct, rho - model.ct)
             #     zTrain = selectSubset(z, iGrid, iT, rho)
             #     yP = model(xTrain, zTrain)
-            if type(model) in [rnn.CudnnLstmModel_Inv]:
-                iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
-                xTrain = selectSubset(x, iGrid, iT, rho, c=c, tupleOut=True)
-                yTrain = selectSubset(y, iGrid, iT, rho)
-                yP1, Param_R2P = model(xTrain,yTrain) # will also send in the y for inversion generator
-                yP = [yP1,Param_R2P]
+            # if type(model) in [rnn.CudnnLstmModel_Inv]:
+            #     iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
+            #     xTrain = selectSubset(x, iGrid, iT, rho, c=c, tupleOut=True)
+            #     yTrain = selectSubset(y, iGrid, iT, rho)
+            #     yP1, Param_R2P = model(xTrain,yTrain) # will also send in the y for inversion generator
+            #     yP = [yP1,Param_R2P]
 
             # if type(model) in [hydroDL.model.rnn.LstmCnnCond]:
             #     iGrid, iT = randomIndex(ngrid, nt, [batchSize, rho])
