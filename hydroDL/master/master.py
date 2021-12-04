@@ -143,7 +143,7 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
             subset=optData['subset'],
             tRange=optData['tRange'])
         if readY is True:
-            y = df.getDataTs(
+            y = df.getDataObs(
                 varLst=optData['target'],
                 doNorm=optData['doNorm'][1],
                 rmNan=optData['rmNan'][1])
@@ -151,7 +151,7 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
             y = None
 
         if readX is True:
-            x = df.getDataTs(
+            x = df.getDataForc(
                 varLst=optData['varT'],
                 doNorm=optData['doNorm'][0],
                 rmNan=optData['rmNan'][0])
@@ -169,7 +169,7 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
                     rootDB=optData['rootDB'],
                     subset=optData['subset'],
                     tRange=[sd, ed])
-                obs = df.getDataTs(
+                obs = df.getDataObs(
                     varLst=optData['target'],
                     doNorm=optData['doNorm'][1],
                     rmNan=optData['rmNan'][1])
@@ -180,12 +180,12 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
     elif eval(optData['name']) is hydroDL.data.camels.DataframeCamels:
         df = hydroDL.data.camels.DataframeCamels(
             subset=optData['subset'], tRange=optData['tRange'])
-        x = df.getDataTs(forcing_path, attr_path, out,
+        x = df.getDataForc(forcing_path, attr_path, out,
             varLst=optData['varT'],
             doNorm=optData['doNorm'][0],
             rmNan=optData['rmNan'][0])
         y = df.getDataObs(Target, forcing_path, attr_path,
-            doNorm=optData['doNorm'][0] , rmNan=optData['rmNan'][0])    # doNorm=optData['doNorm'][1]     optData['rmNan'][1]
+            doNorm=optData['doNorm'][0] , rmNan=optData['rmNan'][1])    # doNorm=optData['doNorm'][1]     optData['rmNan'][1]
         c = df.getDataConst(forcing_path, attr_path,
             varLst=optData['varC'],
             doNorm=optData['doNorm'][0],
@@ -249,7 +249,7 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
                     elif optData['davar'] == 'precipitation':
                         df = hydroDL.data.camels.DataframeCamels(
                             subset=optData['subset'], tRange=[sd, ed])
-                        obs = df.getDataTs(
+                        obs = df.getDataObs(
                             varLst=['prcp'], doNorm=optData['doNorm'][0], rmNan=True)
                     else:
                         raise Exception('unknown assimilation variable')
@@ -263,7 +263,7 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
                         df = hydroDL.data.camels.DataframeCamels(
                             subset=optData['subset'], tRange=[sd, ed])
                         if optData['davar'] == 'streamflow':
-                            obsday = df.getDataObs(
+                            obsday = df.getDataForc(
                                 doNorm=optData['doNorm'][1], rmNan=False)
                         elif optData['davar'] == 'precipitation':
                             obsday = df.getDataTs(
@@ -301,11 +301,6 @@ def loadData(optData, Target, forcing_path, attr_path, out, readX=True, readY=Tr
                         obs[np.where(np.isnan(obs))] = 0
                 dadata[:, :, ii] = obs.squeeze()
             x = (x, dadata)
-            # test DI(3)-A hypothesis
-            # x = np.concatenate((x, dadata[:, :, 0:3]), axis=2)
-            # if len(ndaylst) >3:
-            #     x = (x, dadata[:, :, 3:])
-            # regular mean DA for test temporialy, add weight dimension
             if optData['dameanopt'] == 2:
                 winput = (nday + 1 - np.arange(1, nday + 1)) / nday
                 winput = np.tile(winput, Nint)[0:endindex]
@@ -441,7 +436,7 @@ def train(mDict):
                     ny=optModel['ny'],
                     hiddenSize=optModel['hiddenSize'])
                 optModel['name'] = 'hydroDL.model.rnn.CudnnLstmModel'
-                print('Too few obserservations, not using cnn kernel')
+                print('Too few observations, not using cnn kernel')
         else:
             raise Exception('CNN kernel used but daobs option is not obs list')
     elif eval(optModel['name']) is hydroDL.model.rnn.CNN1dLSTMInmodel:
@@ -620,6 +615,9 @@ def test(out,
                 pred, gageid=gageid, toNorm=False)
             obs = hydroDL.data.camels.basinNorm(
                 obs, gageid=gageid, toNorm=False)
+        if basinnorm is False:
+            pred = hydroDL.data.camels.transNorm(pred, Target, toNorm=False)
+            obs  = hydroDL.data.camels.transNorm(obs , Target, toNorm=False)
     if isSigmaX is True:
             return df, pred, obs, sigmaX
     else:
