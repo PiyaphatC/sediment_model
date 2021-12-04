@@ -38,7 +38,7 @@ def statError(pred, target):
     for k in range(0, ngrid):
         x = pred[k, :]   #predicted SSC
         y = target[k, :] #observed SSC
-        ind = np.where(np.logical_and(~np.isnan(x), ~np.isnan(y)))[0]
+        ind = np.where(np.logical_and(~np.isnan(x), ~np.isnan(y)))[0] #what's this line? Park
         if ind.shape[0] > 0:
             xx = x[ind]
             yy = y[ind]
@@ -71,12 +71,12 @@ def statError(pred, target):
 
             if ind.shape[0] > 1:
                 # Theoretically at least two points for correlation
-                Corr[k] = scipy.stats.pearsonr(xx, yy)[0]
                 yymean = yy.mean()
-                SST = np.sum((yy-yymean)**2)
-                SSReg = np.sum((xx-yymean)**2)
-                SSRes = np.sum((xx-yy)**2)
-                NSE[k] = 1-SSRes/SST
+                SST = np.sum((yy - yymean) ** 2)
+                SSReg = np.sum((xx - yymean) ** 2)
+                SSRes = np.sum((xx - yy) ** 2)
+                NSE[k] = 1 - (SSRes / SST)
+                Corr[k] = scipy.stats.pearsonr(xx, yy)[0]
                 xxmean = xx.mean()
                 R2[k] = ((np.sum((yy-yymean)*(xx-xxmean))) / (((np.sum((yy-yymean)**2)) ** 0.5)*(np.sum((xx - xxmean)**2)) ** 0.5))**2
 
