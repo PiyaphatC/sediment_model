@@ -10,21 +10,24 @@ import json
 from . import Dataframe
 
 # module variable
-tRange = [19800101, 20200101]
-tRangeobs = [19800101, 20200101]    #[19801001, 20161001] #  streamflow observations
+tRange = [19800101, 20191231]
+tRangeobs = [19800101, 20191231]    #[19801001, 20161001] #  streamflow observations
 tLst = utils.time.tRange2Array(tRange)
 tLstobs = utils.time.tRange2Array(tRangeobs)
 nt = len(tLst)
 ntobs = len(tLstobs)
 
 
-forcingLst = ['PRCP (Daymet)'] #'streamflow'] #, '80154_mean']
+forcingLst = ['prcp(mm/day)', 'new_streamflow','srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)']#, 'srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)' ] #, 'streamflow','80154_mean']
 # attr below are the new selection
 attrLstSel = ['PPTAVG_BASIN',
-	            'DDENS_2009',	'STOR_NID_2009',	'MAJ_DDENS_2009',
-                'DEVNLCD06',	'FORESTNLCD06',	'PLANTNLCD06',
-                'HGA',	'HGB',	'HGC',	'HGD',	'PERMAVE',	'NO4AVE',	'NO200AVE',
-                'NO10AVE',	'CLAYAVE',	'SILTAVE',	'SANDAVE',	'KFACT_UP',	
+	            'DDENS_2009',	'STOR_NID_2009',
+                'MAJ_DDENS_2009',
+                'DEVNLCD06',		'PLANTNLCD06',    'FORESTNLCD06',
+                'HGA',	'HGB',	'HGC',	'HGD',
+                'PERMAVE',	'NO4AVE',	'NO200AVE',
+                'NO10AVE',	'CLAYAVE',	'SILTAVE',	'SANDAVE',
+                'KFACT_UP',
                 'RFACT',	'ELEV_MEAN_M_BASIN',	'SLOPE_PCT',	'ASPECT_DEGREES',	
                 'DRAIN_SQKM',	'HYDRO_DISTURB_INDX']
 
@@ -44,21 +47,24 @@ def readGageInfo(dirDB):
             out[s] = data[fieldLst.index(s)].values
     return out
 
-def readUsgsGage(usgsId, Target, *, readQc=False):
-    obs = forcing_data.loc[forcing_data['sta_id']==usgsId, Target].to_numpy()
+def readUsgsGage(usgsId, Target, num, *, readQc=False):
+    obsx = forcing_data.loc[(forcing_data['sta_id']==usgsId, Target)].reset_index(drop = True)
+    obs = obsx.loc[0:ntobs-1]
+    # print(obs.shape)
     return obs
 
 def readUsgs(usgsIdLst: object) -> object:
     t0 = time.time()
-    y = np.empty([len(usgsIdLst), ntobs])
+    y = np.zeros([len(usgsIdLst), ntobs])
     for k in range(len(usgsIdLst)):
-        dataObs = readUsgsGage(usgsIdLst[k], Target)
-        y[k, :] = dataObs.flatten()
+        dataObs = readUsgsGage(usgsIdLst[k], Target, k)
+        y[k, :] = dataObs.values.reshape(-1)
     print("read ssc", time.time() - t0)
     return y
 
 def readForcingGage(usgsId, varLst=forcingLst, *, dataset='nldas'):
-    forc_variables = forcing_data.loc[forcing_data['sta_id']==usgsId]
+    forx = forcing_data.loc[forcing_data['sta_id']==usgsId].reset_index(drop = True)
+    forc_variables = forx.loc[0:ntobs-1]
     nf = len(varLst)
     out = np.zeros([nt, nf])
     for k in range(nf):
@@ -69,7 +75,7 @@ def readForcingGage(usgsId, varLst=forcingLst, *, dataset='nldas'):
 def readForcing(usgsIdLst, varLst):
     t0 = time.time()
 
-    x = np.zeros([len(usgsIdLst), nt, len(varLst)])   #previous version is np.empty
+    x = np.empty([len(usgsIdLst), nt, len(varLst)])   #previous version is np.empty
 
     for k in range(len(usgsIdLst)):
         data = readForcingGage(usgsIdLst[k], varLst)
@@ -147,7 +153,7 @@ def calSed(x):
     a = x.flatten()
     bb = a[~np.isnan(a)]  # kick out Nan
     b = bb[bb != (-999999)]
-    b = np.log10(b)  # do some tranformation to change gamma characteristics
+    b = np.log10(np.sqrt(b)+ 0.1)  # do a transformation
     p10 = np.percentile(b, 10).astype(float)
     p90 = np.percentile(b, 90).astype(float)
     mean = np.mean(b).astype(float)
@@ -168,11 +174,6 @@ def calStatgamma(x):
     return [p10, p90, mean, std]
 
 def calStatbasinnorm(x):  # for daily streamflow normalized by basin area and precipitation
-   ## basinarea = readAttr(gageDict['id'], ['area_gages2'])
-    x[x<0]=0
-
-    # x[x = -99999] = 0
-    #np.where(x==(-999999), 0, x)
     basinarea = attr_data['DRAIN_SQKM']
    ## meanprep = readAttr(gageDict['id'], ['p_mean'])
     meanprep = attr_data['PPTAVG_BASIN'] #  anual average precipitation
@@ -203,20 +204,17 @@ def calStatAll():
     y = readUsgs(idLst)
     if Target == ['80154_mean']:
         statDict['80154_mean'] = calSed(y)    #calStatbasinnorm(y), calSed(y)
-    elif Target == ['streamflow'] or ['PRCP (Daymet)']:
-        statDict['streamflow'] = calStatgamma(y)
     else:
         statDict[Target] = calStat(y)
     # forcing
-    # x = readUsgs(idLst, forcingLst)
     x = readForcing(idLst, forcingLst)
     for k in range(len(forcingLst)):
         var = forcingLst[k]
         if var=='APCP':
-            statDict[var] = calStatgamma(x[:, :, k])
-        elif var=='PRCP (Daymet)':
-            statDict[var] = calStatgamma(x[:, :, k])
-        elif var=='streamflow':
+            statDict[var] = calStat(x[:, :, k])
+        elif var=='prcp(mm/day)':
+            statDict[var] = calStat(x[:, :, k])
+        elif var=='new_streamflow':
             statDict[var] = calStatbasinnorm(x[:, :, k])
         else:
             statDict[var] = calStat(x[:, :, k])
@@ -237,7 +235,7 @@ def calStatAll():
 def transNorm(x, varLst, *, toNorm):
     if type(varLst) is str:
         varLst = [varLst]
-    out = np.zeros(x.shape)
+    out = np.empty(x.shape)
 
     for k in range(len(varLst)):
         var = varLst[k]
@@ -245,31 +243,31 @@ def transNorm(x, varLst, *, toNorm):
         stat = statDict[var]
         if toNorm is True:
             if len(x.shape) == 3:
-                if var == 'streamflow' or var == 'PRCP (Daymet)':
-                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k] + 0.1))
+                if var == 'new_streamflow' or var == 'prcp(mm/day)':
+                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k]) + 0.1)
                 elif var == '80154_mean':
-                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k]))
+                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k]) + 0.1)
                 #simple standardization
                 out[:, :, k] = (x[:, :, k] - stat[2]) / stat[3]
 
             elif len(x.shape) == 2:
-                if var == 'PRCP (Daymet)' or var == 'streamflow':
-                    x[:, k] = np.log10(np.sqrt(x[:, k] + 0.1))
+                if var == 'prcp(mm/day)' or var == 'new_streamflow':
+                    x[:, k] = np.log10(np.sqrt(x[:, k]) + 0.1)
                 if var == '80154_mean':
-                    x[:, k] = np.log10(np.sqrt(x[:, k]))
+                    x[:, k] = np.log10(np.sqrt(x[:, k]) + 0.1)
                 out[:, k] = (x[:, k] - stat[2]) / stat[3]
         else: #denormalization
             if len(x.shape) == 3:
                 out[:, :, k] = x[:, :, k] * stat[3] + stat[2]
-                if var == 'streamflow' or var == 'PRCP (Daymet)':
+                if var == 'new_streamflow' or var == 'prcp(mm/day)':
                     out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
                 if var == '80154_mean':
-                    out[:, :, k] = (np.power(10, out[:, :, k])) ** 2
+                    out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
 
 
             elif len(x.shape) == 2:
                 out[:, k] = x[:, k] * stat[3] + stat[2]
-                if var == 'streamflow' or 'PRCP (Daymet)':
+                if var == 'streamflow' or 'prcp(mm/day)':
                     out[:, k] = (np.power(10, out[:, k]) - 0.1) ** 2
                 if var == '80154_mean':
                     out[:, k] = (np.power(10, out[:, k])) ** 2
@@ -278,17 +276,11 @@ def transNorm(x, varLst, *, toNorm):
     return out
 
 def basinNorm(x, gageid, toNorm):
-    # for regional training, gageid should be numpyarray
-    #if type(gageid) is str:
-       # if gageid == 'All':
-         #   gageid = gageDict['id']
+
     nd = len(x.shape)
     meanprep = attr_data['PPTAVG_BASIN']
     basinarea = attr_data['DRAIN_SQKM']
 
-   # basinarea = readAttr(gageid, ['area_gages2'])
-  #  meanprep = readAttr(gageid, ['p_mean'])
-   # # meanprep = readAttr(gageid, ['q_mean'])  #this line was ponded from the beginning
     if nd == 3 and x.shape[2] == 1:
         x = x[:,:,0] # unsqueeze the original 3 dimension matrix
     temparea = np.tile(basinarea, ( x.shape[1], 1)).transpose()
@@ -341,22 +333,22 @@ class DataframeCamels(Dataframe):
     #what's this?
     def __init__(self, *, subset='All', tRange):
         self.subset = subset        
-        #if subset == 'All':  # change to read subset later
-#            self.usgsId = gageDict['id']
- #           crd = np.zeros([len(self.usgsId), 2])
-  #          crd[:, 0] = gageDict['lat']
-   #         crd[:, 1] = gageDict['lon']
-    #        self.crd = crd
-     #   elif type(subset) is list:
-      #      self.usgsId = np.array(subset)
-       #     crd = np.zeros([len(self.usgsId), 2])
+        # if subset == 'All':  # change to read subset later
+        #    self.usgsId = gageDict['id']
+        #    crd = np.zeros([len(self.usgsId), 2])
+        #    crd[:, 0] = gageDict['lat']
+        #    crd[:, 1] = gageDict['lon']
+        #    self.crd = crd
+        # elif type(subset) is list:
+        #    self.usgsId = np.array(subset)
+        #    crd = np.zeros([len(self.usgsId), 2])
         #    C, ind1, ind2 = np.intersect1d(self.usgsId, gageDict['id'], return_indices=True)
-         #   crd[:, 0] = gageDict['lat'][ind2]
-          #  crd[:, 1] = gageDict['lon'][ind2]
-           # self.crd = crd
-      #  else:
+        #    crd[:, 0] = gageDict['lat'][ind2]
+        #    crd[:, 1] = gageDict['lon'][ind2]
+        #    self.crd = crd
+        # else:
         #    raise Exception('The format of subset is not correct!')
-        self.time = utils.time.tRange2Array(tRange)        
+        self.time = utils.time.tRange2Array(tRange)
 
     def getGeo(self):
         return self.crd
@@ -369,6 +361,7 @@ class DataframeCamels(Dataframe):
         df_obs = pd.DataFrame()
         inputfiles = os.path.join(forcing_path)   #obs_18basins     forcing_350days_T_S_GAGESII
         dfMain = pd.read_csv(inputfiles)
+        dfMain['80154_mean'].mask(dfMain['80154_mean'] >= 10000.0 , np.nan, inplace=True)
         inputfiles = os.path.join(attr_path)    #attr_18basins   attr_350days_T_S_GAGESII
         dfC = pd.read_csv(inputfiles)
         nNodes = len(dfC['STAID'])
@@ -380,58 +373,57 @@ class DataframeCamels(Dataframe):
             dfC1 = dfC1.append(A, ignore_index=True)
         dfC = dfC1
         seg_id['STAID'] = dfC['STAID']
+        usgsIdLst = seg_id.to_numpy()
         df_obs[Target] = dfMain[Target]    #
 
-        y = np.empty([nNodes, ntobs])
-        for i in range(nNodes):
-           
-            a = ntobs * i
-            b = ntobs * (i + 1)
-            data = df_obs.iloc[a:b]
-            kk = dfMain.columns.get_loc('sta_id')
-            id = dfMain.iloc[a:a + 1, kk]
-            val_mask = seg_id == id[a]
-            k = val_mask.index[val_mask['STAID'] == True][0]
-            y[k, :] = data.iloc[:, 0]
+        # y = np.empty([nNodes, ntobs])
+        # for i in range(nNodes):
+
+        y = np.zeros([len(usgsIdLst), ntobs])
+        for k in range(len(usgsIdLst)):
+            dataObs = readUsgsGage(usgsIdLst[k].item(), Target, k)
+            y[k, :] = dataObs.values.reshape(-1)
+
+
+            # a = ntobs * i
+            # b = ntobs * (i + 1)
+            # data = df_obs.iloc[a:b]
+            # kk = dfMain.columns.get_loc('sta_id')
+            # id = dfMain.iloc[a:a + 1, kk]
+            # val_mask = seg_id == id[a]
+            # k = val_mask.index[val_mask['STAID'] == True][0]
+            # y[k, :] = data.iloc[:, 0]
 
 
 
         data = y
-
-
-
-        #data = readUsgs(self.usgsId)
-     #   if basinnorm is True:
-        #    for k in range(len(varLst)):
-           #     var = varLst[k]
-                #    stat = statDict[var]
-
-     #       data = basinNorm(data, gageid=self.usgsId, toNorm=True)
-        data = np.expand_dims(data, axis=2)
+        #select only period we want such as training period or testing period
+        data = np.expand_dims(data, axis=2) #change from (basin, tTraining) to (basin, tTrain, 1)
+        #tLstobs = range of observed data
         C, ind1, ind2 = np.intersect1d(self.time, tLstobs, return_indices=True)
-        data = data[:, ind2, :]  # What is this line?
+        data = data[:, ind2, :]  # select only the period we want
         if doNorm is True:
             data = transNorm(data, Target, toNorm=True)
+        if doNorm is False:
+            data = transNorm(data, Target, toNorm=False)
         if rmNan is True:
             data[np.where(np.isnan(data))] = 0
             # data[np.where(np.isnan(data))] = -99
         return data
 
-    def getDataTs(self,forcing_path, attr_path, out, *, varLst=forcingLst, doNorm=True, rmNan=True):
+    def getDataForc(self,forcing_path, attr_path, out, *, varLst=forcingLst, doNorm=True, rmNan=True): #forcing datasets
         if type(varLst) is str:
             varLst = [varLst]
         # read ts forcing
-        #rootDatabase = os.path.join(os.path.sep, absRoot, 'scratch', 'SNTemp')
-        inputfiles = os.path.join(forcing_path)   #   forcing_350days_T_S_GAGESII
+        inputfiles = os.path.join(forcing_path)
         dfMain = pd.read_csv(inputfiles)
-        ############ I'm just curious the following line
-        dfMain[dfMain['streamflow']<0] = 0  # try to kick -99999 and some of negative values
-        inputfiles = os.path.join(attr_path)       #   attr_350days_T_S_GAGESII
+        #dfMain['streamflow'].mask(dfMain['streamflow'] < 0.0, 0.0, inplace=True)
+        inputfiles = os.path.join(attr_path)
         dfC = pd.read_csv(inputfiles)
         nNodes = len(dfC['STAID'])
         x = np.empty([nNodes, ntobs, len(forcingLst)])
         id_order_dfMain = dfMain['sta_id'].unique()
-        seg_id = pd.DataFrame() #what's this? same as the uniques?
+        seg_id = pd.DataFrame()
         dfC1 = pd.DataFrame()
         #selecting attribute by stations
         for i, ii in enumerate(id_order_dfMain):  # to have the same order of seg_id_nat in both dfMain & dfC
@@ -439,35 +431,39 @@ class DataframeCamels(Dataframe):
             dfC1 = dfC1.append(A, ignore_index=True)
         dfC = dfC1
         seg_id['site_no'] = dfC['STAID']
+        usgsIdLst = seg_id.to_numpy()
         forcing = pd.DataFrame()
         for i , ii in enumerate(forcingLst):
             forcing[ii] = dfMain[ii]
-        for i in range(nNodes):
-                
-            a = ntobs * i
-            b = ntobs * (i + 1)
-            data = forcing.iloc[a:b, :]
-            kk = dfMain.columns.get_loc('sta_id')
-            id = dfMain.iloc[a:a+1, kk]
-            #val_mask = seg_id == id[a]
-            #k = val_mask.index[val_mask['site_no'] == True][0]
 
-            x[i, :, :] = data
+        x = np.empty([len(usgsIdLst), nt, len(varLst)])
+        for k in range(len(usgsIdLst)):
+            data = readForcingGage(usgsIdLst[k].item(), varLst)
+            x[k, :, :] = data
+            # a = ntobs * i
+            # b = ntobs * (i + 1)
+            # data = forcing.iloc[a:b, :]
+
+
+
 
             #print(x.size)
             #changing some nan to zero
             #x = np.nan_to_num(x)
-        data = x # readForcing(self.usgsId, varLst) # data:[gage*day*variable]
+        data = x
+        #select only training and testing period we want
         C, ind1, ind2 = np.intersect1d(self.time, tLst, return_indices=True) #C: training period, ind1: index of training days, ind2: index of testing? days
         data = data[:, ind2, :]
         if os.path.isdir(out):
             pass
         else:
             os.makedirs(out)
-        np.save(os.path.join(out, 'x.npy'), data) #x.npy = forcing data
+        np.save(os.path.join(out, 'forcing_train.npy'), data)
         # Apply a normalization
         if doNorm is True:
             data = transNorm(data, varLst, toNorm=True)
+        if doNorm is False:
+            data = transNorm(data, varLst, toNorm=False)
         if rmNan is True:
             data[np.where(np.isnan(data))] = 0
         return data
@@ -487,7 +483,7 @@ class DataframeCamels(Dataframe):
         for i, ii in enumerate(id_order_dfMain):  # to have the same order of seg_id_nat in both dfMain & dfC
             A = dfC.loc[dfC['STAID'] == ii]
             dfC1 = dfC1.append(A, ignore_index=True)
-        dfC = dfC
+        dfC = dfC1
         c = np.empty([nNodes, len(varLst)])
         df_constant = pd.DataFrame()
         for i, ii in enumerate(varLst):
