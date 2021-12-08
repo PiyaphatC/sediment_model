@@ -48,16 +48,16 @@ forcing_path = os.path.join(os.path.sep,
                             rootDatabase,
                             'Forcing',
                             'Forcing_new',
-                            'Forcing_412_with_log_trans_dtfix.csv')  #
+                            'all_forcing_427_plus_sim.csv')  #
 forcing_data = pd.read_csv(forcing_path)
 #forcing_data.loc[forcing_data['80154_mean'] > 10000.0] = 10000.0
 forcing_data['80154_mean'].mask(forcing_data['80154_mean'] > 10000.0, 10000.0, inplace=True)
-forcing_data['streamflow'].mask(forcing_data['streamflow'] < 0.0, 0.0, inplace=True)
+# forcing_data['streamflow'].mask(forcing_data['streamflow'] < 0.0, 0.0, inplace=True)
 attr_path = os.path.join(os.path.sep,
                          rootDatabase,
                          'Forcing',
                          'attr_new',
-                         'final_25_attr_with_latlong.csv')
+                         '427atr.csv')
 attr_data = pd.read_csv(attr_path)
 camels.initcamels(forcing_data, attr_data, Target, rootDatabase)  # initialize three camels module-scope variables in camels.py: dirDB, gageDict, statDict
 
@@ -167,7 +167,7 @@ if 2 in Action:
 
     outLst = [os.path.join(rootOut, save_path, x) for x in caseLst]
     subset = 'All'  # 'All': use all the CAMELS gages to test; Or pass the gage list
-    tRange = [20011001, 20031001]  # Testing period
+    tRange = [20001001, 20031001]  # Testing period
     predLst = list()
     obsLst = list()
     statDictLst = []
