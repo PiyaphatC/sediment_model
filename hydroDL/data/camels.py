@@ -18,12 +18,12 @@ nt = len(tLst)
 ntobs = len(tLstobs)
 
 
-forcingLst = ['prcp(mm/day)', 'new_streamflow','srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)']#, 'srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)' ] #, 'streamflow','80154_mean']
+forcingLst = ['prcp(mm/day)', 'new_streamflow_fill4_0','srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)']#, 'srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)' ] #, 'streamflow','80154_mean']
 # attr below are the new selection
 attrLstSel = ['PPTAVG_BASIN',
 	            'DDENS_2009',	'STOR_NID_2009',
                 'MAJ_DDENS_2009',
-                'DEVNLCD06',		'PLANTNLCD06',    'FORESTNLCD06',
+                'DEVNLCD06',   #'FORESTNLCD06',  #PLANTNLCD06
                 'HGA',	'HGB',	'HGC',	'HGD',
                 'PERMAVE',	'NO4AVE',	'NO200AVE',
                 'NO10AVE',	'CLAYAVE',	'SILTAVE',	'SANDAVE',
@@ -214,7 +214,7 @@ def calStatAll():
             statDict[var] = calStat(x[:, :, k])
         elif var=='prcp(mm/day)':
             statDict[var] = calStat(x[:, :, k])
-        elif var=='new_streamflow':
+        elif var=='new_streamflow_fill4_0':
             statDict[var] = calStatbasinnorm(x[:, :, k])
         else:
             statDict[var] = calStat(x[:, :, k])
