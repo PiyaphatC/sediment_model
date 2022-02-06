@@ -10,15 +10,17 @@ import json
 from . import Dataframe
 
 # module variable
-tRange = [19800101, 20191231]
-tRangeobs = [19800101, 20191231]    #[19801001, 20161001] #  streamflow observations
+tRange = [19800101, 20200101]
+tRangeobs = [19800101, 20200101]
+# tRange = [19800101, 20191231]
+# tRangeobs = [19800101, 20191231]    #[19801001, 20161001] #  streamflow observations
 tLst = utils.time.tRange2Array(tRange)
 tLstobs = utils.time.tRange2Array(tRangeobs)
 nt = len(tLst)
 ntobs = len(tLstobs)
 
 
-forcingLst = ['prcp(mm/day)', 'new_streamflow_fill4_0','srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)']#, 'srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)' ] #, 'streamflow','80154_mean']
+forcingLst = ['prcp(mm/day)', 'srad(W/m2)', 'swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)']#,'new_streamflow', 'new_streamflow_fill4_0','srad(W/m2)','swe(mm)',	'tmax(C)',	'tmin(C)',	'vp(Pa)' ] #, 'streamflow','80154_mean']
 # attr below are the new selection
 attrLstSel = ['PPTAVG_BASIN',
 	            'DDENS_2009',	'STOR_NID_2009',
@@ -52,7 +54,7 @@ def readUsgsGage(usgsId, Target, num, *, readQc=False):
     obs = obsx.loc[0:ntobs-1]
     # print(obs.shape)
     return obs
-
+# This function has been checked
 def readUsgs(usgsIdLst: object) -> object:
     t0 = time.time()
     y = np.zeros([len(usgsIdLst), ntobs])
@@ -61,7 +63,7 @@ def readUsgs(usgsIdLst: object) -> object:
         y[k, :] = dataObs.values.reshape(-1)
     print("read ssc", time.time() - t0)
     return y
-
+# This function has been checked
 def readForcingGage(usgsId, varLst=forcingLst, *, dataset='nldas'):
     forx = forcing_data.loc[forcing_data['sta_id']==usgsId].reset_index(drop = True)
     forc_variables = forx.loc[0:ntobs-1]
@@ -153,7 +155,7 @@ def calSed(x):
     a = x.flatten()
     bb = a[~np.isnan(a)]  # kick out Nan
     b = bb[bb != (-999999)]
-    b = np.log10(np.sqrt(b)+ 0.1)  # do a transformation
+    b = np.log10((b)+0.1)  # do a Log transformation
     p10 = np.percentile(b, 10).astype(float)
     p90 = np.percentile(b, 90).astype(float)
     mean = np.mean(b).astype(float)
@@ -205,7 +207,7 @@ def calStatAll():
     if Target == ['80154_mean']:
         statDict['80154_mean'] = calSed(y)    #calStatbasinnorm(y), calSed(y)
     else:
-        statDict[Target] = calStat(y)
+        statDict[Target[0]] = calStatbasinnorm(y)
     # forcing
     x = readForcing(idLst, forcingLst)
     for k in range(len(forcingLst)):
@@ -213,8 +215,10 @@ def calStatAll():
         if var=='APCP':
             statDict[var] = calStat(x[:, :, k])
         elif var=='prcp(mm/day)':
-            statDict[var] = calStat(x[:, :, k])
-        elif var=='new_streamflow_fill4_0':
+            statDict[var] = calStatgamma(x[:, :, k])
+        elif var=='new_streamflow':
+            statDict[var] = calStatbasinnorm(x[:, :, k])
+        elif var == '00060_mean':
             statDict[var] = calStatbasinnorm(x[:, :, k])
         else:
             statDict[var] = calStat(x[:, :, k])
@@ -243,10 +247,11 @@ def transNorm(x, varLst, *, toNorm):
         stat = statDict[var]
         if toNorm is True:
             if len(x.shape) == 3:
-                if var == 'new_streamflow' or var == 'prcp(mm/day)':
+                # x[:, :, k] = np.log10(np.sqrt(x[:, :, k]) + 0.1)
+                if var == 'new_streamflow' or var == 'prcp(mm/day)': #or var == 'srad(W/m2)'or var ==  'swe(mm)'or var == 'tmax(C)'or var == 'tmin(C)' or var == 'vp(Pa)':
                     x[:, :, k] = np.log10(np.sqrt(x[:, :, k]) + 0.1)
                 elif var == '80154_mean':
-                    x[:, :, k] = np.log10(np.sqrt(x[:, :, k]) + 0.1)
+                    x[:, :, k] = np.log10((x[:, :, k]) + 0.1)
                 #simple standardization
                 out[:, :, k] = (x[:, :, k] - stat[2]) / stat[3]
 
@@ -254,23 +259,24 @@ def transNorm(x, varLst, *, toNorm):
                 if var == 'prcp(mm/day)' or var == 'new_streamflow':
                     x[:, k] = np.log10(np.sqrt(x[:, k]) + 0.1)
                 if var == '80154_mean':
-                    x[:, k] = np.log10(np.sqrt(x[:, k]) + 0.1)
+                    x[:, k] = np.log10(np.sqrt(x[:, k])+0.1)
                 out[:, k] = (x[:, k] - stat[2]) / stat[3]
         else: #denormalization
             if len(x.shape) == 3:
                 out[:, :, k] = x[:, :, k] * stat[3] + stat[2]
+                #out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
                 if var == 'new_streamflow' or var == 'prcp(mm/day)':
                     out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
                 if var == '80154_mean':
-                    out[:, :, k] = (np.power(10, out[:, :, k]) - 0.1) ** 2
+                    out[:, :, k] = (np.power(10, out[:, :, k])-0.1)
 
 
             elif len(x.shape) == 2:
                 out[:, k] = x[:, k] * stat[3] + stat[2]
-                if var == 'streamflow' or 'prcp(mm/day)':
+                if var == 'streamflow' or 'prcp(mm/day)'or '00060_mean':
                     out[:, k] = (np.power(10, out[:, k]) - 0.1) ** 2
                 if var == '80154_mean':
-                    out[:, k] = (np.power(10, out[:, k])) ** 2
+                    out[:, k] = (np.power(10, out[:, k]) -0.1)
 
 
     return out
@@ -402,6 +408,11 @@ class DataframeCamels(Dataframe):
         #tLstobs = range of observed data
         C, ind1, ind2 = np.intersect1d(self.time, tLstobs, return_indices=True)
         data = data[:, ind2, :]  # select only the period we want
+        # if os.path.isdir(out):
+        #     pass
+        # else:
+        #     os.makedirs(out)
+        # np.save(os.path.join(out, 'non_normalized_forcing_train.npy'), data)
         if doNorm is True:
             data = transNorm(data, Target, toNorm=True)
         if doNorm is False:
@@ -417,7 +428,7 @@ class DataframeCamels(Dataframe):
         # read ts forcing
         inputfiles = os.path.join(forcing_path)
         dfMain = pd.read_csv(inputfiles)
-        #dfMain['streamflow'].mask(dfMain['streamflow'] < 0.0, 0.0, inplace=True)
+        dfMain['new_streamflow'].mask(dfMain['new_streamflow'] < 0.0, 0.0, inplace=True)
         inputfiles = os.path.join(attr_path)
         dfC = pd.read_csv(inputfiles)
         nNodes = len(dfC['STAID'])
