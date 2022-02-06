@@ -520,7 +520,7 @@ def train(mDict):
 
 
 def test(out,
-         Target, forcing_path, attr_path,
+         Target, forcing_path, attr_path, D_N_P_path,
          *,
          tRange,
          subset,
@@ -555,10 +555,10 @@ def test(out,
         print('Runing new results')
         #load normalized data
         df, x, obs, c = loadData(optData, Target, forcing_path, attr_path, out)
-        # c = None # temporary test
+
         model = loadModel(out, epoch=epoch)
         hydroDL.model.train.testModel(
-            model, x, c, batchSize=batchSize, filePathLst=filePathLst, doMC=doMC)
+            model, x, c, D_N_P_path, batchSize=batchSize, filePathLst=filePathLst, doMC=doMC)
     else:
         print('Loaded previous results')
         df, x, obs, c = loadData(optData, Target, forcing_path, attr_path, readX=False)
@@ -580,7 +580,7 @@ def test(out,
         #pred=ktemp
         pred = dataPred
 
-    if optData['doNorm'][1] is True:
+    if optData['doNorm'][0] is True:
         if eval(optData['name']) is hydroDL.data.dbCsv.DataframeCsv:
             target = optData['target']
             if type(optData['target']) is not list:
@@ -604,20 +604,20 @@ def test(out,
                         fieldName=target[k],
                         fromRaw=False)
         elif eval(optData['name']) is hydroDL.data.camels.DataframeCamels:
-            pred = hydroDL.data.camels.transNorm(pred, Target, toNorm=False)
-            obs = hydroDL.data.camels.transNorm(obs, Target, toNorm=False)
-        if basinnorm is True:
-            if type(subset) is list:
-                gageid = np.array(subset)
-            elif type(subset) is str:
-                gageid = subset
-            pred = hydroDL.data.camels.basinNorm(
-                pred, gageid=gageid, toNorm=False)
-            obs = hydroDL.data.camels.basinNorm(
-                obs, gageid=gageid, toNorm=False)
-        if basinnorm is False:
-            pred = hydroDL.data.camels.transNorm(pred, Target, toNorm=False)
-            obs  = hydroDL.data.camels.transNorm(obs , Target, toNorm=False)
+            # pred = hydroDL.data.camels.transNorm(pred, Target, toNorm=False)
+            # obs = hydroDL.data.camels.transNorm(obs, Target, toNorm=False)
+            if basinnorm is True:
+                if type(subset) is list:
+                    gageid = np.array(subset)
+                elif type(subset) is str:
+                    gageid = subset
+                pred = hydroDL.data.camels.basinNorm(
+                    pred, gageid=gageid, toNorm=False)
+                obs = hydroDL.data.camels.basinNorm(
+                    obs, gageid=gageid, toNorm=False)
+            if basinnorm is False:
+                pred = hydroDL.data.camels.transNorm(pred, Target, toNorm=False)
+                obs  = hydroDL.data.camels.transNorm(obs , Target, toNorm=False)
     if isSigmaX is True:
             return df, pred, obs, sigmaX
     else:
