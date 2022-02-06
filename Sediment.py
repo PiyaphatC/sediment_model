@@ -7,6 +7,7 @@ from hydroDL.data import camels
 from hydroDL.model import rnn, crit, train
 from hydroDL.post import plot, stat
 from hydroDL.data.camels import transNorm
+from hydroDL.utils import time
 
 
 import numpy as np
@@ -26,16 +27,16 @@ interfaceOpt = 1
 # Options for training and testing
 # 0: train base model
 # 2: test trained models
-Action = [0,2]
+Action = [2]
 # Set hyperparameters for training or retraining
-EPOCH = 10
-BATCH_SIZE = 100
+EPOCH = 150
+BATCH_SIZE = 427
 RHO = 365
 HIDDENSIZE =100
-saveEPOCH = 10 # it was 50
-Ttrain = [20001001, 20051001]  # Training period. it was [19851001, 19951001]
+saveEPOCH = EPOCH # it was 50
+Ttrain = [19800101,20200101]  # Training period. it was [19851001, 19951001]
 seed = None   # fixing the random seed. None means it is not fixed
-Target = ['80154_mean']
+Target = ['80154_mean'] #80154_mean
 absRoot = os.getcwd()
 
 
@@ -50,8 +51,10 @@ forcing_path = os.path.join(os.path.sep,
                             'Forcing_new',
                             'all_forcing_427_plus_sim.csv')  #
 forcing_data = pd.read_csv(forcing_path)
-#forcing_data.loc[forcing_data['80154_mean'] > 10000.0] = 10000.0
-forcing_data['80154_mean'].mask(forcing_data['80154_mean'] > 10000.0, 10000.0, inplace=True)
+#forcing_data['new_streamflow'].mask(forcing_data['new_streamflow'] < 0.0, 0.0, inplace=True)
+# forcing_data['00060_mean'].mask(forcing_data['00060_mean'] < 0.0, np.nan, inplace=True)
+forcing_data['80154_mean'].mask(forcing_data['80154_mean'] > 10000.0, 10000, inplace=True)
+forcing_data['80154_mean'] = np.log10(forcing_data['80154_mean'])
 # forcing_data['streamflow'].mask(forcing_data['streamflow'] < 0.0, 0.0, inplace=True)
 attr_path = os.path.join(os.path.sep,
                          rootDatabase,
@@ -61,6 +64,8 @@ attr_path = os.path.join(os.path.sep,
 attr_data = pd.read_csv(attr_path)
 camels.initcamels(forcing_data, attr_data, Target, rootDatabase)  # initialize three camels module-scope variables in camels.py: dirDB, gageDict, statDict
 
+#adding
+D_N_P_path = os.path.join(os.path.sep, rootDatabase, 'Forcing', 'Forcing_new', 'dnp_non365.csv')
 
 
 # Define all the configurations into dictionary variables
@@ -152,7 +157,10 @@ if 0 in Action:
             nEpoch=EPOCH,
             miniBatch=[BATCH_SIZE, RHO],
             saveEpoch=saveEPOCH,
-            saveFolder=out)
+            saveFolder=out,
+            # adding
+            D_N_P_path=D_N_P_path)
+
     elif interfaceOpt==0: # directly train the model using dictionary variable
         master.train(masterDict)
 
@@ -167,7 +175,7 @@ if 2 in Action:
 
     outLst = [os.path.join(rootOut, save_path, x) for x in caseLst]
     subset = 'All'  # 'All': use all the CAMELS gages to test; Or pass the gage list
-    tRange = [20001001, 20031001]  # Testing period
+    tRange = [19800101, 20200101]  # Testing period
     predLst = list()
     obsLst = list()
     statDictLst = []
@@ -177,20 +185,39 @@ if 2 in Action:
     for i, out in enumerate(outLst):
         df, pred, obs, x = master.test(out, Target, forcing_path,
                                        attr_path,
+                                       D_N_P_path,
                                        tRange=tRange,
                                        subset=subset,
                                        basinnorm=False,
                                        epoch=TestEPOCH,
                                        reTest=True,
                                        )
-        # pred = transNorm(pred, Target, toNorm=False)
+
+        # ################## adding training and testing function#####
+        D_N_P = pd.read_csv(D_N_P_path)
+        D_N_P['S_Training'] = pd.to_datetime(D_N_P['S_Training'], format='%Y%m%d')
+        D_N_P['E_Training'] = pd.to_datetime(D_N_P['E_Training'], format='%Y%m%d')
+        D_N_P['S_Testing']  = pd.to_datetime(D_N_P['S_Testing'], format='%Y%m%d')
+        D_N_P['E_Testing']  = pd.to_datetime(D_N_P['E_Testing'], format='%Y%m%d')
+        for ii in range(obs.shape[0]):
+            tLst1 = D_N_P.iloc[ii]['S_Testing']
+            tLst2 = D_N_P.iloc[ii]['E_Testing']
+            tArray1 = time.tRange2Array([int(str(tLst1.year) + str(tLst1.month).zfill(2) + str(tLst1.day).zfill(2)),
+                                         int(str(tLst2.year) + str(tLst2.month).zfill(2) + str(tLst2.day).zfill(2))])
+            tArray2 = time.tRange2Array(tRange)
+            C, ind1, ind2 = np.intersect1d(tArray1, tArray2, return_indices=True)
+            #obs[ii, ind2, :] = np.nan  # it gives you metrics for testing
+            obs[ii, ~ind2, :] = np.nan   # it gives you metrics for training
+
+        ####################
+        # pred = transNorm(pred, Target, toNorm=False) #toNorm = False means Denormalization
         # obs  = transNorm(obs, Target, toNorm=False)
         predLst.append(pred) # the prediction list for all the models
         obsLst.append(obs)
 
         np.save(os.path.join(out, 'pred.npy'), pred)
         np.save(os.path.join(out, 'obs.npy'), obs)
-        f = np.load(os.path.join(out, 'x.npy'))  # it has been saved previously in the out directory
+        f = np.load(os.path.join(out, 'forcing_train.npy'))  # it has been saved previously in the out directory (forcing selection in Camel.py)
 
     # calculate statistic metrics
        # statDict = stat.statError(pred.squeeze(), obs.squeeze())
