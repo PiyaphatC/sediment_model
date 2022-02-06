@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.stats
+import pandas as pd
 
 keyLst = ['Bias', 'RMSE', 'ubRMSE', 'Corr']
 
@@ -35,12 +36,19 @@ def statError(pred, target):
     PBiaslow = np.full(ngrid, np.nan)
     PBiashigh = np.full(ngrid, np.nan)
     PBias = np.full(ngrid, np.nan)
+    # i = 0
+    # sta_that_suck = []
+    # sta_that_good = []
+    # nse_suck = []
+    # nse_good = []
+    # df_suck = pd.DataFrame()
+    # df_good = pd.DataFrame()
     for k in range(0, ngrid):
         x = pred[k, :]   #predicted SSC
         y = target[k, :] #observed SSC
-        ind = np.where(np.logical_and(~np.isnan(x), ~np.isnan(y)))[0] #what's this line? Park
+        ind = np.where(np.logical_and(~np.isnan(x), ~np.isnan(y)))[0]
         if ind.shape[0] > 0:
-            xx = x[ind]
+            xx = np.abs(x[ind])
             yy = y[ind]
             # RMSE by Farshid
             RMSE[k] = np.sqrt(np.nanmean((xx - yy) ** 2))
@@ -72,14 +80,36 @@ def statError(pred, target):
             if ind.shape[0] > 1:
                 # Theoretically at least two points for correlation
                 yymean = yy.mean()
+                # check yymean == 0.0?
+                # if yymean == 0.0:
+                #     yymean = yymean + 0.1
                 SST = np.sum((yy - yymean) ** 2)
                 SSReg = np.sum((xx - yymean) ** 2)
                 SSRes = np.sum((xx - yy) ** 2)
                 NSE[k] = 1 - (SSRes / SST)
+                # if NSE[k] < 0:
+                #     print('This is suck :', k)
+                #     sta_that_suck.append(k)
+                #     nse_suck.append(NSE[k])
+                #     print(NSE[k])
+                #     i = i + 1
+                #     print(i)
+                # else:
+                #     print('This is good :', k)
+                #     sta_that_good.append(k)
+                #     nse_good.append(NSE[k])
+                #     print(NSE[k])
+                #     i = i + 1
+                #     print(i)
                 Corr[k] = scipy.stats.pearsonr(xx, yy)[0]
                 xxmean = xx.mean()
                 R2[k] = ((np.sum((yy-yymean)*(xx-xxmean))) / (((np.sum((yy-yymean)**2)) ** 0.5)*(np.sum((xx - xxmean)**2)) ** 0.5))**2
-
+    # df_suck['sta_id'] = sta_that_suck
+    # df_suck['nse_suck'] = nse_suck
+    # df_suck.to_csv('G:/Park/Backup_results/sta_that_suck3.csv', index = False)
+    # df_good['sta_id'] = sta_that_good
+    # df_good['nse_good'] = nse_good
+    # df_good.to_csv('G:/Park/Backup_results/sta_that_good3.csv', index=False)
 
 
 
