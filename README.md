@@ -1,8 +1,16 @@
-# LSTM_Temperature Modeling
-Using LSTM for stream temperature modeling.
-main code is StreamTemp_integ.py.
-copy forcing pandas files in scratch/SNTemp/Forcing/Forcing_new
-copy attribute pandas files in scratch/SNTemp/Forcing/attr_new
+# Sediment Modeling with LSTM
+Using LSTM for sediment modeling.
+main code is sediment.py
+#For Local-CONUS model, please select Local branch
+#Example files are the following
+Forcing Data:
+Attrbutes Data:
+DNP (Date and Period):
+#For Whole-CONUS model, please select Local branch
+#Example files are the following
+Forcing Data:
+Attrbutes Data:
+DNP (Date and Period):
 
 
 # packages in environment :
