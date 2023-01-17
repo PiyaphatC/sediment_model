@@ -27,7 +27,7 @@ interfaceOpt = 1
 # Options for training and testing
 # 0: train base model
 # 2: test trained models
-Action = [2]
+Action = [0,2]
 # Set hyperparameters for training or retraining
 EPOCH = 150
 BATCH_SIZE = 427

@@ -36,13 +36,7 @@ def statError(pred, target):
     PBiaslow = np.full(ngrid, np.nan)
     PBiashigh = np.full(ngrid, np.nan)
     PBias = np.full(ngrid, np.nan)
-    # i = 0
-    # sta_that_suck = []
-    # sta_that_good = []
-    # nse_suck = []
-    # nse_good = []
-    # df_suck = pd.DataFrame()
-    # df_good = pd.DataFrame()
+
     for k in range(0, ngrid):
         x = pred[k, :]   #predicted SSC
         y = target[k, :] #observed SSC
