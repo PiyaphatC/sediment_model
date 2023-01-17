@@ -1,4 +1,6 @@
 
 *.pyc
-*.pyc
 *.csv
+*.json
+*.png
+*.npy
